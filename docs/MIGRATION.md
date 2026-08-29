@@ -376,10 +376,10 @@ export abstract class AbstractController extends LayaScriptBase() implements ICo
 ```ts
 // ✅ 正确
 import { Laya } from 'LayaAir';   // 先引入 Laya
-import { AbstractController } from 'QFramework';
+import { AbstractController } from 'qframework-laya';
 
 // ✅ 异步加载 Laya 时
-import { installLaya } from 'QFramework';
+import { installLaya } from 'qframework-laya';
 installLaya(layaInstance);              // 必须在 import 业务模块之前
 await import('./MyController');
 ```

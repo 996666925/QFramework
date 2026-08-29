@@ -1,8 +1,28 @@
 {
-  "name": "QFramework",
-  "version": "0.0.0",
+  "name": "qframework-laya",
+  "version": "0.0.1",
+  "description": "QFramework 的 TypeScript / LayaAir 适配版：Architecture / Command / Query / System / Model / Utility 分层架构",
+  "keywords": [
+    "qframework",
+    "layaair",
+    "laya",
+    "typescript",
+    "architecture",
+    "mvc",
+    "cqrs",
+    "event",
+    "game-framework"
+  ],
   "license": "MIT",
   "author": "QFramework.ts contributors",
+  "homepage": "https://github.com/996666925/QFramework#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/996666925/QFramework.git"
+  },
+  "bugs": {
+    "url": "https://github.com/996666925/QFramework/issues"
+  },
   "type": "module",
   "exports": {
     ".": {

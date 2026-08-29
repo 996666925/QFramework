@@ -166,7 +166,7 @@ type Type<T> = new (...args: any[]) => T;   // 就是"某个类的构造函数"
 Model 就是"账本"，只负责存数据。
 
 ```ts
-import { AbstractModel, BindableProperty } from 'QFramework';
+import { AbstractModel, BindableProperty } from 'qframework-laya';
 
 class CounterModel extends AbstractModel {
   // 用 BindableProperty 而不是普通字段，这样值变化时会通知别人
@@ -189,7 +189,7 @@ class CounterModel extends AbstractModel {
 **只有 Command 能改数据。**
 
 ```ts
-import { AbstractCommand } from 'QFramework';
+import { AbstractCommand } from 'qframework-laya';
 
 class IncreaseCountCommand extends AbstractCommand {
   protected onExecute(): void {
@@ -206,7 +206,7 @@ class IncreaseCountCommand extends AbstractCommand {
 ### 1.3 第三步：定义 Query（读数据）
 
 ```ts
-import { AbstractQuery } from 'QFramework';
+import { AbstractQuery } from 'qframework-laya';
 
 class GetCountQuery extends AbstractQuery<number> {
   protected onDo(): number {
@@ -223,7 +223,7 @@ class GetCountQuery extends AbstractQuery<number> {
 ### 1.4 第四步：定义 Architecture（把它们装起来）
 
 ```ts
-import { Architecture } from 'QFramework';
+import { Architecture } from 'qframework-laya';
 
 class CounterApp extends Architecture<CounterApp> {
   protected init(): void {
@@ -248,7 +248,7 @@ console.log(count); // => 2
 ### 1.6 完整代码
 
 ```ts
-import { AbstractCommand, AbstractModel, AbstractQuery, Architecture, BindableProperty } from 'QFramework';
+import { AbstractCommand, AbstractModel, AbstractQuery, Architecture, BindableProperty } from 'qframework-laya';
 
 // 1. 数据
 class CounterModel extends AbstractModel {
@@ -549,7 +549,7 @@ orEvent(coinChanged, hpChanged).register(() => this.refreshHud());
 "购买"这种操作需要知道成功还是失败：
 
 ```ts
-import { AbstractCommandWithResult } from 'QFramework';
+import { AbstractCommandWithResult } from 'qframework-laya';
 
 class PurchaseCommand extends AbstractCommandWithResult<boolean> {
   constructor(private readonly itemId: string) {
@@ -743,7 +743,7 @@ class StatSystem extends AbstractSystem {
 
 ```ts
 import { Laya } from 'LayaAir';   // 先
-import { AbstractController } from 'QFramework';   // 后
+import { AbstractController } from 'qframework-laya';   // 后
 ```
 
 > 如果 Laya 是异步加载的，需要在 import 业务代码前调用 `installLaya(laya)`。
@@ -753,7 +753,7 @@ import { AbstractController } from 'QFramework';   // 后
 
 ```ts
 import { Laya } from 'LayaAir';
-import { AbstractController, BindableProperty, unRegisterWhenNodeDestroyed } from 'QFramework';
+import { AbstractController, BindableProperty, unRegisterWhenNodeDestroyed } from 'qframework-laya';
 
 const { regClass } = Laya;
 
@@ -914,7 +914,7 @@ const bag = node.addComponent(BagController);
 ### 7.2 数据层
 
 ```ts
-import { AbstractModel, BindableProperty } from 'QFramework';
+import { AbstractModel, BindableProperty } from 'qframework-laya';
 
 class ShopModel extends AbstractModel {
   readonly coin = new BindableProperty<number>(100);
@@ -945,7 +945,7 @@ class PurchaseFailedEvent {
 ### 7.4 基础设施层
 
 ```ts
-import type { IUtility } from 'QFramework';
+import type { IUtility } from 'qframework-laya';
 
 class PriceTable implements IUtility {
   private readonly mPrices: Record<string, number> = {
@@ -969,7 +969,7 @@ class GameLogger implements IUtility {
 ### 7.5 查询
 
 ```ts
-import { AbstractQuery } from 'QFramework';
+import { AbstractQuery } from 'qframework-laya';
 
 class GetCoinQuery extends AbstractQuery<number> {
   protected onDo(): number {
@@ -988,7 +988,7 @@ class CanAffordQuery extends AbstractQuery<boolean> {
 ### 7.6 命令
 
 ```ts
-import { AbstractCommand, AbstractCommandWithResult } from 'QFramework';
+import { AbstractCommand, AbstractCommandWithResult } from 'qframework-laya';
 
 class PurchaseCommand extends AbstractCommandWithResult<boolean> {
   constructor(private readonly itemId: string) { super(); }
@@ -1025,7 +1025,7 @@ class EarnCoinCommand extends AbstractCommand {
 ### 7.7 领域层
 
 ```ts
-import { AbstractSystem } from 'QFramework';
+import { AbstractSystem } from 'qframework-laya';
 
 class AchievementSystem extends AbstractSystem {
   readonly unlocked: string[] = [];
@@ -1044,7 +1044,7 @@ class AchievementSystem extends AbstractSystem {
 ### 7.8 架构
 
 ```ts
-import { Architecture } from 'QFramework';
+import { Architecture } from 'qframework-laya';
 
 class ShopApp extends Architecture<ShopApp> {
   protected init(): void {
@@ -1060,7 +1060,7 @@ class ShopApp extends Architecture<ShopApp> {
 
 ```ts
 import { Laya } from 'LayaAir';
-import { AbstractController, unRegisterWhenNodeDestroyed } from 'QFramework';
+import { AbstractController, unRegisterWhenNodeDestroyed } from 'qframework-laya';
 
 const { regClass } = Laya;
 

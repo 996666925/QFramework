@@ -32,14 +32,28 @@ QFramework v1.0 的 **TypeScript / LayaAir 适配版**，由 [QFramework(C#)](ht
 ### 安装
 
 ```bash
-bun add QFramework
-# 或 npm install QFramework
+bun add qframework-laya
+# 或 npm install qframework-laya
+```
+
+### TS 配置
+
+本库的类型声明引用了 LayaAir 的全局 `Laya` 命名空间。若你的项目**尚未引入 LayaAir 类型**且未开启 `skipLibCheck`，`tsc` 会报 `Cannot find name 'Laya'`。
+
+在 `tsconfig.json` 中开启即可（Vite / Next 等主流模板默认已开启）：
+
+```json
+{
+  "compilerOptions": {
+    "skipLibCheck": true
+  }
+}
 ```
 
 ### 1. 定义 Architecture
 
 ```ts
-import { Architecture } from 'QFramework';
+import { Architecture } from 'qframework-laya';
 
 class CounterApp extends Architecture<CounterApp> {
   protected init(): void {
@@ -53,7 +67,7 @@ class CounterApp extends Architecture<CounterApp> {
 ### 2. 定义 Model（数据）
 
 ```ts
-import { AbstractModel, BindableProperty } from 'QFramework';
+import { AbstractModel, BindableProperty } from 'qframework-laya';
 
 class CounterModel extends AbstractModel {
   readonly count = new BindableProperty<number>(0);
@@ -67,7 +81,7 @@ class CounterModel extends AbstractModel {
 ### 3. 定义 Command（唯一的写入口）
 
 ```ts
-import { AbstractCommand } from 'QFramework';
+import { AbstractCommand } from 'qframework-laya';
 
 class IncreaseCountCommand extends AbstractCommand {
   protected onExecute(): void {
@@ -81,7 +95,7 @@ class IncreaseCountCommand extends AbstractCommand {
 ### 4. 定义 Query（只读）
 
 ```ts
-import { AbstractQuery } from 'QFramework';
+import { AbstractQuery } from 'qframework-laya';
 
 class GetCountQuery extends AbstractQuery<number> {
   protected onDo(): number {
@@ -105,7 +119,7 @@ const count = CounterApp.Interface.sendQuery(new GetCountQuery());
 `AbstractController` 继承自 `Laya.Script`，因此可以直接挂到 Laya 节点上，拥有 `onAwake / onEnable / onStart / onUpdate / onDestroy` 等完整生命周期。
 
 ```ts
-import { AbstractController, BindableProperty, unRegisterWhenNodeDestroyed } from 'QFramework';
+import { AbstractController, BindableProperty, unRegisterWhenNodeDestroyed } from 'qframework-laya';
 
 class HudController extends AbstractController {
   // 重写后，onAwake 阶段会自动完成架构绑定

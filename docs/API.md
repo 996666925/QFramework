@@ -3,8 +3,8 @@
 全部导出均来自 `src/index.ts`，可从包根路径直接导入：
 
 ```ts
-import { Architecture, AbstractController, BindableProperty } from 'QFramework';
-import type { Type, EventKey, IArchitecture } from 'QFramework';
+import { Architecture, AbstractController, BindableProperty } from 'qframework-laya';
+import type { Type, EventKey, IArchitecture } from 'qframework-laya';
 ```
 
 > 说明：以下签名中 `Type<T>` = `new (...args: any[]) => T`，是本框架统一使用的「类型标识」。
