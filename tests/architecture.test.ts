@@ -16,7 +16,7 @@ import {
   ArchitectureCapabilities,
   BindableProperty,
 } from '../src/index';
-import type { IArchitecture, ICommand, IModel, IQuery, IUtility } from '../src/index';
+import type { IArchitecture, ICommand, IModel, IQuery, IUtility, TypeToken } from '../src/index';
 
 // #region 演示用的模块
 
@@ -311,12 +311,14 @@ describe('Architecture 注册与获取', () => {
     interface IStorage extends IUtility {
       save(data: string): string;
     }
-    class DiskStorage implements IStorage {
+    abstract class StorageKey implements IStorage {
+      abstract save(data: string): string;
+    }
+    class DiskStorage extends StorageKey {
       save(data: string): string {
         return `disk:${data}`;
       }
     }
-    abstract class StorageKey {}
 
     class KeyApp extends Architecture<KeyApp> {
       protected init(): void {
@@ -324,7 +326,7 @@ describe('Architecture 注册与获取', () => {
       }
     }
 
-    expect(KeyApp.Interface.getUtility<IStorage>(StorageKey as never)!.save('a')).toBe('disk:a');
+    expect(KeyApp.Interface.getUtility(StorageKey)!.save('a')).toBe('disk:a');
   });
 
   test('05 - System 可以获取其它 System 与 Utility', () => {
@@ -351,16 +353,19 @@ describe('Architecture 注册与获取', () => {
     expect(dep.storage).toBeInstanceOf(StorageUtility);
   });
 
-  test('06 - 注册时模块会持有架构引用', () => {
+  test('06 - 注册后 Model 可使用允许的 Utility 能力', () => {
     const model = new CounterModel();
     class RefApp extends Architecture<RefApp> {
       protected init(): void {
+        this.registerUtility(new StorageUtility());
         this.registerModel(model);
       }
     }
 
     void RefApp.Interface;
-    expect(model.getArchitecture()).toBe(RefApp.Interface);
+    expect(model.getUtility(StorageUtility)).toBeInstanceOf(StorageUtility);
+    expect((model as unknown as { getArchitecture?: unknown }).getArchitecture).toBeUndefined();
+    expect((model as unknown as { setArchitecture?: unknown }).setArchitecture).toBeUndefined();
   });
 });
 
@@ -790,26 +795,71 @@ describe('接口一致性', () => {
   test('01 - AbstractModel 实现 IModel', () => {
     const model: IModel = new CounterModel();
     expect(typeof model.init).toBe('function');
-    expect(typeof model.getArchitecture).toBe('function');
-    expect(typeof model.setArchitecture).toBe('function');
     expect(typeof model.sendEvent).toBe('function');
     expect(typeof model.getUtility).toBe('function');
   });
 
-  test('02 - 分层约束：Model 不能发命令、不能注册事件', () => {
+  test('02 - 分层约束：Model 不能获取架构、发命令或注册事件', () => {
     const model = new CounterModel();
     // IModel 只暴露 getUtility / sendEvent，编译期即受限
+    expect((model as unknown as { getArchitecture?: unknown }).getArchitecture).toBeUndefined();
+    expect((model as unknown as { setArchitecture?: unknown }).setArchitecture).toBeUndefined();
     expect((model as unknown as { sendCommand?: unknown }).sendCommand).toBeUndefined();
     expect((model as unknown as { registerEvent?: unknown }).registerEvent).toBeUndefined();
   });
 
-  test('03 - 分层约束：Query 不能发命令、不能发送事件', () => {
+  test('03 - 自定义 IModel 的旧式 setArchitecture 仍会被框架调用', () => {
+    class CustomModel implements IModel {
+      private readonly mCap = new ArchitectureCapabilities(this);
+      private mArchitecture: IArchitecture | null = null;
+      inited = false;
+
+      getArchitecture(): IArchitecture {
+        if (!this.mArchitecture) throw new Error('未绑定');
+        return this.mArchitecture;
+      }
+
+      setArchitecture(architecture: IArchitecture): void {
+        this.mArchitecture = architecture;
+      }
+
+      getUtility<TUtility extends IUtility>(key: TypeToken<TUtility>): TUtility | null {
+        return this.mCap.getUtility(key);
+      }
+
+      sendEvent<T>(e: T): void {
+        this.mCap.sendEvent(e);
+      }
+
+      sendEventByType<T>(key: new (...args: any[]) => T, ...args: any[]): void {
+        this.mCap.sendEventByType(key, ...args);
+      }
+
+      init(): void {
+        this.inited = true;
+      }
+    }
+
+    const model = new CustomModel();
+    class App extends Architecture<App> {
+      protected init(): void {
+        this.registerUtility(new StorageUtility());
+        this.registerModel(model);
+      }
+    }
+
+    void App.Interface;
+    expect(model.inited).toBe(true);
+    expect(model.getUtility(StorageUtility)).toBeInstanceOf(StorageUtility);
+  });
+
+  test('04 - 分层约束：Query 不能发命令、不能发送事件', () => {
     const query = new GetCountQuery();
     expect((query as unknown as { sendCommand?: unknown }).sendCommand).toBeUndefined();
     expect((query as unknown as { sendEvent?: unknown }).sendEvent).toBeUndefined();
   });
 
-  test('04 - Command 能力最全', () => {
+  test('05 - Command 具备全部业务能力，但不暴露架构', () => {
     const command = new AddCountCommand(1);
     expect(typeof command.getSystem).toBe('function');
     expect(typeof command.getModel).toBe('function');
@@ -817,6 +867,8 @@ describe('接口一致性', () => {
     expect(typeof command.sendCommand).toBe('function');
     expect(typeof command.sendQuery).toBe('function');
     expect(typeof command.sendEvent).toBe('function');
+    expect((command as unknown as { getArchitecture?: unknown }).getArchitecture).toBeUndefined();
+    expect((command as unknown as { setArchitecture?: unknown }).setArchitecture).toBeUndefined();
   });
 });
 

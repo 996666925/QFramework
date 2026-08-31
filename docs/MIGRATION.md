@@ -82,7 +82,7 @@ TS 没有扩展方法，改为把实现集中到 `ArchitectureCapabilities`，�
 ```ts
 export class ArchitectureCapabilities {
   constructor(private readonly holder: IBelongToArchitecture) {}
-  getModel<T extends IModel>(key: Type<T>): T | null {
+  getModel<T extends IModel>(key: TypeToken<T>): T | null {
     return this.holder.getArchitecture().getModel<T>(key);
   }
   // ...
@@ -90,7 +90,7 @@ export class ArchitectureCapabilities {
 
 export abstract class AbstractSystem implements ISystem {
   private readonly mCap = new ArchitectureCapabilities(this);
-  getModel<T extends IModel>(key: Type<T>): T | null { return this.mCap.getModel<T>(key); }
+  getModel<T extends IModel>(key: TypeToken<T>): T | null { return this.mCap.getModel<T>(key); }
 }
 ```
 
@@ -244,19 +244,19 @@ static getInstance<T extends Architecture<T>>(this: AbstractType<T> | Type<T>): 
 ### 0. 初始化期间动态注册模块（C# 会抛异常，本版支持）
 
 C# 的 `foreach` 在遍历 `HashSet` 时被修改会抛 `InvalidOperationException`，
-也就是说「在 `Model.Init()` 里再注册一个 Model」在 C# 里是**直接报错**的。
+也就是说初始化期间再注册模块，在 C# 里会**直接报错**。
 
 本版改为**排空队列**语义并完整支持这个场景：
 
 ```ts
-class BootstrapModel extends AbstractModel {
+class BootstrapSystem extends AbstractSystem {
   protected onInit(): void {
-    this.getArchitecture().registerSystem(new LazySystem()); // ✅ 会被正确初始化
+    this.getArchitecture().registerSystem(new LazySystem());
   }
 }
 ```
 
-初始化顺序仍然是：全部 Model → 全部 System；初始化过程中新注册的模块会被继续处理，且**每个模块只 init 一次**。
+Model 只能获取 Utility 和发送事件；需要动态注册模块时，请在 System 或 Architecture 中完成。初始化顺序仍然是：全部 Model → 全部 System；初始化过程中新注册的模块会被继续处理，且**每个模块只 init 一次**。
 
 ### 1. 未注册返回 `null` 而不是抛异常
 

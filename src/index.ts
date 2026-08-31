@@ -45,6 +45,9 @@ export type Type<T> = new (...args: any[]) => T;
 /** 抽象类（不可 new）的构造函数类型 */
 export type AbstractType<T> = abstract new (...args: any[]) => T;
 
+/** 用于查询已注册模块的类型标识。抽象类、字符串和 Symbol 均可作为 token。 */
+export type TypeToken<T> = Type<T> | AbstractType<T> | string | symbol;
+
 /**
  * 基本类型的装箱构造函数。
  * `send(42)` 内部会以 `Number` 作为事件 key，
@@ -740,17 +743,17 @@ export interface ICanSetArchitecture {
 
 /** 可以获取 Model */
 export interface ICanGetModel extends IBelongToArchitecture {
-  getModel<TModel extends IModel>(key: Type<TModel>): TModel | null;
+  getModel<TModel extends IModel>(key: TypeToken<TModel>): TModel | null;
 }
 
 /** 可以获取 System */
 export interface ICanGetSystem extends IBelongToArchitecture {
-  getSystem<TSystem extends ISystem>(key: Type<TSystem>): TSystem | null;
+  getSystem<TSystem extends ISystem>(key: TypeToken<TSystem>): TSystem | null;
 }
 
 /** 可以获取 Utility */
 export interface ICanGetUtility extends IBelongToArchitecture {
-  getUtility<TUtility extends IUtility>(key: Type<TUtility>): TUtility | null;
+  getUtility<TUtility extends IUtility>(key: TypeToken<TUtility>): TUtility | null;
 }
 
 /** 可以注册事件 */
@@ -787,15 +790,15 @@ export class ArchitectureCapabilities {
     return this.holder.getArchitecture();
   }
 
-  getSystem<TSystem extends ISystem>(key: Type<TSystem>): TSystem | null {
+  getSystem<TSystem extends ISystem>(key: TypeToken<TSystem>): TSystem | null {
     return this.architecture.getSystem<TSystem>(key);
   }
 
-  getModel<TModel extends IModel>(key: Type<TModel>): TModel | null {
+  getModel<TModel extends IModel>(key: TypeToken<TModel>): TModel | null {
     return this.architecture.getModel<TModel>(key);
   }
 
-  getUtility<TUtility extends IUtility>(key: Type<TUtility>): TUtility | null {
+  getUtility<TUtility extends IUtility>(key: TypeToken<TUtility>): TUtility | null {
     return this.architecture.getUtility<TUtility>(key);
   }
 
@@ -848,6 +851,34 @@ class ArchitectureHolder implements IBelongToArchitecture, ICanSetArchitecture {
   }
 }
 
+/**
+ * Model 的架构绑定是框架内部实现细节。
+ *
+ * QFramework 规定 Model 只能使用 Utility 和发送事件，不能取得或操作
+ * IArchitecture。用 WeakMap 保存 AbstractModel 的持有者，避免将绑定方法
+ * 暴露在 Model 的公共 API 上。
+ */
+const architectureHolders = new WeakMap<object, ArchitectureHolder>();
+
+function registerArchitectureHolder(owner: object, holder: ArchitectureHolder): void {
+  architectureHolders.set(owner, holder);
+}
+
+/**
+ * 绑定由框架持有的基类实例；保留对手写模块的兼容：若其自行实现了
+ * setArchitecture，仍按原版 QFramework 的约定调用它。
+ */
+function bindArchitecture(owner: object, architecture: IArchitecture): void {
+  const holder = architectureHolders.get(owner);
+  if (holder) {
+    holder.setArchitecture(architecture);
+    return;
+  }
+
+  const legacyOwner = owner as { setArchitecture?: (value: IArchitecture) => void };
+  legacyOwner.setArchitecture?.(architecture);
+}
+
 // #endregion
 
 // #region Architecture
@@ -858,9 +889,9 @@ export interface IArchitecture {
   registerModel<TModel extends IModel>(model: TModel, key?: unknown): void;
   registerUtility<TUtility extends IUtility>(utility: TUtility, key?: unknown): void;
 
-  getSystem<TSystem extends ISystem>(key: Type<TSystem>): TSystem | null;
-  getModel<TModel extends IModel>(key: Type<TModel>): TModel | null;
-  getUtility<TUtility extends IUtility>(key: Type<TUtility>): TUtility | null;
+  getSystem<TSystem extends ISystem>(key: TypeToken<TSystem>): TSystem | null;
+  getModel<TModel extends IModel>(key: TypeToken<TModel>): TModel | null;
+  getUtility<TUtility extends IUtility>(key: TypeToken<TUtility>): TUtility | null;
 
   sendCommand<TResult = void>(command: ICommand<TResult>): TResult;
   sendQuery<TResult>(query: IQuery<TResult>): TResult;
@@ -911,6 +942,12 @@ function resolveArchitecture(ctor: unknown): IArchitecture {
   constructing.add(ctor);
   let created: IArchitecture;
   try {
+    if ((ctor as { length?: number }).length !== 0) {
+      throw new Error(
+        `[QFramework] ${architectureName(ctor)} 的构造函数不能声明必填参数；` +
+          'Architecture.Interface 只能无参创建架构实例。',
+      );
+    }
     created = new (ctor as Type<IArchitecture>)();
   } finally {
     constructing.delete(ctor);
@@ -998,7 +1035,7 @@ export abstract class Architecture<T extends Architecture<T>> implements IArchit
   }
 
   registerSystem<TSystem extends ISystem>(system: TSystem, key?: unknown): void {
-    system.setArchitecture(this);
+    bindArchitecture(system, this);
     this.mContainer.register<TSystem>(system, key ?? defaultTypeKey(system));
 
     if (!this.mInited) {
@@ -1009,7 +1046,7 @@ export abstract class Architecture<T extends Architecture<T>> implements IArchit
   }
 
   registerModel<TModel extends IModel>(model: TModel, key?: unknown): void {
-    model.setArchitecture(this);
+    bindArchitecture(model, this);
     this.mContainer.register<TModel>(model, key ?? defaultTypeKey(model));
 
     if (!this.mInited) {
@@ -1023,15 +1060,15 @@ export abstract class Architecture<T extends Architecture<T>> implements IArchit
     this.mContainer.register<TUtility>(utility, key ?? defaultTypeKey(utility));
   }
 
-  getSystem<TSystem extends ISystem>(key: Type<TSystem>): TSystem | null {
+  getSystem<TSystem extends ISystem>(key: TypeToken<TSystem>): TSystem | null {
     return this.mContainer.get<TSystem>(key);
   }
 
-  getModel<TModel extends IModel>(key: Type<TModel>): TModel | null {
+  getModel<TModel extends IModel>(key: TypeToken<TModel>): TModel | null {
     return this.mContainer.get<TModel>(key);
   }
 
-  getUtility<TUtility extends IUtility>(key: Type<TUtility>): TUtility | null {
+  getUtility<TUtility extends IUtility>(key: TypeToken<TUtility>): TUtility | null {
     return this.mContainer.get<TUtility>(key);
   }
 
@@ -1041,7 +1078,7 @@ export abstract class Architecture<T extends Architecture<T>> implements IArchit
 
   /** 命令执行入口，子类可以重写以加入日志、拦截器逻辑 */
   protected executeCommand<TResult>(command: ICommand<TResult>): TResult {
-    command.setArchitecture(this);
+    bindArchitecture(command, this);
     return command.execute();
   }
 
@@ -1076,16 +1113,15 @@ export abstract class Architecture<T extends Architecture<T>> implements IArchit
 
 // #region Command
 
-/** 命令（无返回值） */
-export interface ICommand<TResult = void>
-  extends IBelongToArchitecture,
-    ICanSetArchitecture,
-    ICanGetSystem,
-    ICanGetModel,
-    ICanGetUtility,
-    ICanSendEvent,
-    ICanSendCommand,
-    ICanSendQuery {
+/** 命令可使用所有业务能力，但不直接操作架构。 */
+export interface ICommand<TResult = void> {
+  getSystem<TSystem extends ISystem>(key: TypeToken<TSystem>): TSystem | null;
+  getModel<TModel extends IModel>(key: TypeToken<TModel>): TModel | null;
+  getUtility<TUtility extends IUtility>(key: TypeToken<TUtility>): TUtility | null;
+  sendCommand<TCommandResult = void>(command: ICommand<TCommandResult>): TCommandResult;
+  sendQuery<TQueryResult>(query: IQuery<TQueryResult>): TQueryResult;
+  sendEvent<T>(e: T, key?: EventKey<T>): void;
+  sendEventByType<T>(key: Type<T>, ...args: any[]): void;
   execute(): TResult;
 }
 
@@ -1094,23 +1130,19 @@ export abstract class AbstractCommand implements ICommand<void> {
   private readonly mHolder = new ArchitectureHolder(this);
   private readonly mCap = new ArchitectureCapabilities(this.mHolder);
 
-  getArchitecture(): IArchitecture {
-    return this.mHolder.getArchitecture();
+  constructor() {
+    registerArchitectureHolder(this, this.mHolder);
   }
 
-  setArchitecture(architecture: IArchitecture): void {
-    this.mHolder.setArchitecture(architecture);
-  }
-
-  getSystem<TSystem extends ISystem>(key: Type<TSystem>): TSystem | null {
+  getSystem<TSystem extends ISystem>(key: TypeToken<TSystem>): TSystem | null {
     return this.mCap.getSystem<TSystem>(key);
   }
 
-  getModel<TModel extends IModel>(key: Type<TModel>): TModel | null {
+  getModel<TModel extends IModel>(key: TypeToken<TModel>): TModel | null {
     return this.mCap.getModel<TModel>(key);
   }
 
-  getUtility<TUtility extends IUtility>(key: Type<TUtility>): TUtility | null {
+  getUtility<TUtility extends IUtility>(key: TypeToken<TUtility>): TUtility | null {
     return this.mCap.getUtility<TUtility>(key);
   }
 
@@ -1142,23 +1174,19 @@ export abstract class AbstractCommandWithResult<TResult> implements ICommand<TRe
   private readonly mHolder = new ArchitectureHolder(this);
   private readonly mCap = new ArchitectureCapabilities(this.mHolder);
 
-  getArchitecture(): IArchitecture {
-    return this.mHolder.getArchitecture();
+  constructor() {
+    registerArchitectureHolder(this, this.mHolder);
   }
 
-  setArchitecture(architecture: IArchitecture): void {
-    this.mHolder.setArchitecture(architecture);
-  }
-
-  getSystem<TSystem extends ISystem>(key: Type<TSystem>): TSystem | null {
+  getSystem<TSystem extends ISystem>(key: TypeToken<TSystem>): TSystem | null {
     return this.mCap.getSystem<TSystem>(key);
   }
 
-  getModel<TModel extends IModel>(key: Type<TModel>): TModel | null {
+  getModel<TModel extends IModel>(key: TypeToken<TModel>): TModel | null {
     return this.mCap.getModel<TModel>(key);
   }
 
-  getUtility<TUtility extends IUtility>(key: Type<TUtility>): TUtility | null {
+  getUtility<TUtility extends IUtility>(key: TypeToken<TUtility>): TUtility | null {
     return this.mCap.getUtility<TUtility>(key);
   }
 
@@ -1212,11 +1240,11 @@ export abstract class AbstractQuery<TResult> implements IQuery<TResult> {
     this.mHolder.setArchitecture(architecture);
   }
 
-  getModel<TModel extends IModel>(key: Type<TModel>): TModel | null {
+  getModel<TModel extends IModel>(key: TypeToken<TModel>): TModel | null {
     return this.mCap.getModel<TModel>(key);
   }
 
-  getSystem<TSystem extends ISystem>(key: Type<TSystem>): TSystem | null {
+  getSystem<TSystem extends ISystem>(key: TypeToken<TSystem>): TSystem | null {
     return this.mCap.getSystem<TSystem>(key);
   }
 
@@ -1235,15 +1263,15 @@ export abstract class AbstractQuery<TResult> implements IQuery<TResult> {
 
 // #region System / Model / Utility
 
-/** System */
-export interface ISystem
-  extends IBelongToArchitecture,
-    ICanSetArchitecture,
-    ICanGetModel,
-    ICanGetUtility,
-    ICanRegisterEvent,
-    ICanSendEvent,
-    ICanGetSystem {
+/** System 可访问领域模块和事件，但不直接操作架构。 */
+export interface ISystem {
+  getModel<TModel extends IModel>(key: TypeToken<TModel>): TModel | null;
+  getSystem<TSystem extends ISystem>(key: TypeToken<TSystem>): TSystem | null;
+  getUtility<TUtility extends IUtility>(key: TypeToken<TUtility>): TUtility | null;
+  sendEvent<T>(e: T, key?: EventKey<T>): void;
+  sendEventByType<T>(key: Type<T>, ...args: any[]): void;
+  registerEvent<T>(key: EventKey<T>, onEvent: Action1<T>): IUnRegister;
+  unRegisterEvent<T>(key: EventKey<T>, onEvent: Action1<T>): void;
   init(): void;
 }
 
@@ -1252,23 +1280,19 @@ export abstract class AbstractSystem implements ISystem {
   private readonly mHolder = new ArchitectureHolder(this);
   private readonly mCap = new ArchitectureCapabilities(this.mHolder);
 
-  getArchitecture(): IArchitecture {
-    return this.mHolder.getArchitecture();
+  constructor() {
+    registerArchitectureHolder(this, this.mHolder);
   }
 
-  setArchitecture(architecture: IArchitecture): void {
-    this.mHolder.setArchitecture(architecture);
-  }
-
-  getModel<TModel extends IModel>(key: Type<TModel>): TModel | null {
+  getModel<TModel extends IModel>(key: TypeToken<TModel>): TModel | null {
     return this.mCap.getModel<TModel>(key);
   }
 
-  getSystem<TSystem extends ISystem>(key: Type<TSystem>): TSystem | null {
+  getSystem<TSystem extends ISystem>(key: TypeToken<TSystem>): TSystem | null {
     return this.mCap.getSystem<TSystem>(key);
   }
 
-  getUtility<TUtility extends IUtility>(key: Type<TUtility>): TUtility | null {
+  getUtility<TUtility extends IUtility>(key: TypeToken<TUtility>): TUtility | null {
     return this.mCap.getUtility<TUtility>(key);
   }
 
@@ -1295,12 +1319,16 @@ export abstract class AbstractSystem implements ISystem {
   protected abstract onInit(): void;
 }
 
-/** Model */
-export interface IModel
-  extends IBelongToArchitecture,
-    ICanSetArchitecture,
-    ICanGetUtility,
-    ICanSendEvent {
+/**
+ * Model 只能获取 Utility 和发送事件。
+ *
+ * 架构绑定由 Architecture.registerModel 在内部完成；Model 不暴露
+ * getArchitecture / setArchitecture，以维持 QFramework 的分层约束。
+ */
+export interface IModel {
+  getUtility<TUtility extends IUtility>(key: TypeToken<TUtility>): TUtility | null;
+  sendEvent<T>(e: T, key?: EventKey<T>): void;
+  sendEventByType<T>(key: Type<T>, ...args: any[]): void;
   init(): void;
 }
 
@@ -1309,15 +1337,11 @@ export abstract class AbstractModel implements IModel {
   private readonly mHolder = new ArchitectureHolder(this);
   private readonly mCap = new ArchitectureCapabilities(this.mHolder);
 
-  getArchitecture(): IArchitecture {
-    return this.mHolder.getArchitecture();
+  constructor() {
+    registerArchitectureHolder(this, this.mHolder);
   }
 
-  setArchitecture(architecture: IArchitecture): void {
-    this.mHolder.setArchitecture(architecture);
-  }
-
-  getUtility<TUtility extends IUtility>(key: Type<TUtility>): TUtility | null {
+  getUtility<TUtility extends IUtility>(key: TypeToken<TUtility>): TUtility | null {
     return this.mCap.getUtility<TUtility>(key);
   }
 
@@ -1410,15 +1434,15 @@ export abstract class AbstractController extends LayaScriptBase() implements ICo
     return null;
   }
 
-  getSystem<TSystem extends ISystem>(key: Type<TSystem>): TSystem | null {
+  getSystem<TSystem extends ISystem>(key: TypeToken<TSystem>): TSystem | null {
     return this.mCap.getSystem<TSystem>(key);
   }
 
-  getModel<TModel extends IModel>(key: Type<TModel>): TModel | null {
+  getModel<TModel extends IModel>(key: TypeToken<TModel>): TModel | null {
     return this.mCap.getModel<TModel>(key);
   }
 
-  getUtility<TUtility extends IUtility>(key: Type<TUtility>): TUtility | null {
+  getUtility<TUtility extends IUtility>(key: TypeToken<TUtility>): TUtility | null {
     return this.mCap.getUtility<TUtility>(key);
   }
 
@@ -1428,14 +1452,6 @@ export abstract class AbstractController extends LayaScriptBase() implements ICo
 
   sendQuery<TResult>(query: IQuery<TResult>): TResult {
     return this.mCap.sendQuery<TResult>(query);
-  }
-
-  sendEvent<T>(e: T, key?: EventKey<T>): void {
-    this.mCap.sendEvent<T>(e, key);
-  }
-
-  sendEventByType<T>(key: Type<T>, ...args: any[]): void {
-    this.mCap.sendEventByType<T>(key, ...args);
   }
 
   registerEvent<T>(key: EventKey<T>, onEvent: Action1<T>): IUnRegister {

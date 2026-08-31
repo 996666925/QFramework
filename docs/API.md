@@ -41,6 +41,9 @@ type Type<T> = new (...args: any[]) => T;
 /** 抽象类的构造函数类型（不可 new） */
 type AbstractType<T> = abstract new (...args: any[]) => T;
 
+/** 已注册模块的查询 token：支持具体类、抽象类、字符串和 Symbol */
+type TypeToken<T> = Type<T> | AbstractType<T> | string | symbol;
+
 /** 比较器：返回 true 表示「值未变化」 */
 type Comparer<T> = (a: T, b: T) => boolean;
 ```
@@ -343,9 +346,9 @@ C# 中的扩展方法在 TS 中没有对应语法，因此各「能力接口」�
 interface IBelongToArchitecture { getArchitecture(): IArchitecture; }
 interface ICanSetArchitecture  { setArchitecture(architecture: IArchitecture): void; }
 
-interface ICanGetModel   extends IBelongToArchitecture { getModel<T extends IModel>(key: Type<T>): T | null; }
-interface ICanGetSystem  extends IBelongToArchitecture { getSystem<T extends ISystem>(key: Type<T>): T | null; }
-interface ICanGetUtility extends IBelongToArchitecture { getUtility<T extends IUtility>(key: Type<T>): T | null; }
+interface ICanGetModel   extends IBelongToArchitecture { getModel<T extends IModel>(key: TypeToken<T>): T | null; }
+interface ICanGetSystem  extends IBelongToArchitecture { getSystem<T extends ISystem>(key: TypeToken<T>): T | null; }
+interface ICanGetUtility extends IBelongToArchitecture { getUtility<T extends IUtility>(key: TypeToken<T>): T | null; }
 
 interface ICanRegisterEvent extends IBelongToArchitecture {
   registerEvent<T>(key: EventKey<T>, onEvent: Action1<T>): IUnRegister;
@@ -374,9 +377,9 @@ interface ICanSendQuery extends IBelongToArchitecture {
 class ArchitectureCapabilities {
   constructor(holder: IBelongToArchitecture);
 
-  getSystem<T extends ISystem>(key: Type<T>): T | null;
-  getModel<T extends IModel>(key: Type<T>): T | null;
-  getUtility<T extends IUtility>(key: Type<T>): T | null;
+  getSystem<T extends ISystem>(key: TypeToken<T>): T | null;
+  getModel<T extends IModel>(key: TypeToken<T>): T | null;
+  getUtility<T extends IUtility>(key: TypeToken<T>): T | null;
   sendCommand<TResult = void>(command: ICommand<TResult>): TResult;
   sendQuery<TResult>(query: IQuery<TResult>): TResult;
   sendEvent<T>(e: T, key?: EventKey<T>): void;
@@ -412,9 +415,9 @@ interface IArchitecture {
   registerModel<T extends IModel>(model: T, key?: unknown): void;
   registerUtility<T extends IUtility>(utility: T, key?: unknown): void;
 
-  getSystem<T extends ISystem>(key: Type<T>): T | null;
-  getModel<T extends IModel>(key: Type<T>): T | null;
-  getUtility<T extends IUtility>(key: Type<T>): T | null;
+  getSystem<T extends ISystem>(key: TypeToken<T>): T | null;
+  getModel<T extends IModel>(key: TypeToken<T>): T | null;
+  getUtility<T extends IUtility>(key: TypeToken<T>): T | null;
 
   sendCommand<TResult = void>(command: ICommand<TResult>): TResult;
   sendQuery<TResult>(query: IQuery<TResult>): TResult;
@@ -472,20 +475,22 @@ ShopApp.Interface.sendCommand(new PurchaseCommand('sword'));
 ## Command
 
 ```ts
-interface ICommand<TResult = void>
-  extends IBelongToArchitecture, ICanSetArchitecture, ICanGetSystem, ICanGetModel,
-          ICanGetUtility, ICanSendEvent, ICanSendCommand, ICanSendQuery {
+interface ICommand<TResult = void> {
+  getSystem<T extends ISystem>(key: TypeToken<T>): T | null;
+  getModel<T extends IModel>(key: TypeToken<T>): T | null;
+  getUtility<T extends IUtility>(key: TypeToken<T>): T | null;
+  sendCommand<R = void>(command: ICommand<R>): R;
+  sendQuery<R>(query: IQuery<R>): R;
+  sendEvent<T>(e: T, key?: EventKey<T>): void;
+  sendEventByType<T>(key: Type<T>, ...args: any[]): void;
   execute(): TResult;
 }
 
 /** 无返回值命令基类 */
 abstract class AbstractCommand implements ICommand<void> {
-  getArchitecture(): IArchitecture;
-  setArchitecture(architecture: IArchitecture): void;
-
-  getSystem<T extends ISystem>(key: Type<T>): T | null;
-  getModel<T extends IModel>(key: Type<T>): T | null;
-  getUtility<T extends IUtility>(key: Type<T>): T | null;
+  getSystem<T extends ISystem>(key: TypeToken<T>): T | null;
+  getModel<T extends IModel>(key: TypeToken<T>): T | null;
+  getUtility<T extends IUtility>(key: TypeToken<T>): T | null;
 
   sendCommand<TResult = void>(command: ICommand<TResult>): TResult;
   sendQuery<TResult>(query: IQuery<TResult>): TResult;
@@ -536,8 +541,8 @@ abstract class AbstractQuery<TResult> implements IQuery<TResult> {
   getArchitecture(): IArchitecture;
   setArchitecture(architecture: IArchitecture): void;
 
-  getModel<T extends IModel>(key: Type<T>): T | null;
-  getSystem<T extends ISystem>(key: Type<T>): T | null;
+  getModel<T extends IModel>(key: TypeToken<T>): T | null;
+  getSystem<T extends ISystem>(key: TypeToken<T>): T | null;
   sendQuery<R>(query: IQuery<R>): R;
 
   do(): TResult;
@@ -552,19 +557,21 @@ abstract class AbstractQuery<TResult> implements IQuery<TResult> {
 ## System / Model / Utility
 
 ```ts
-interface ISystem
-  extends IBelongToArchitecture, ICanSetArchitecture, ICanGetModel, ICanGetUtility,
-          ICanRegisterEvent, ICanSendEvent, ICanGetSystem {
+interface ISystem {
+  getModel<T extends IModel>(key: TypeToken<T>): T | null;
+  getSystem<T extends ISystem>(key: TypeToken<T>): T | null;
+  getUtility<T extends IUtility>(key: TypeToken<T>): T | null;
+  sendEvent<T>(e: T, key?: EventKey<T>): void;
+  sendEventByType<T>(key: Type<T>, ...args: any[]): void;
+  registerEvent<T>(key: EventKey<T>, onEvent: Action1<T>): IUnRegister;
+  unRegisterEvent<T>(key: EventKey<T>, onEvent: Action1<T>): void;
   init(): void;
 }
 
 abstract class AbstractSystem implements ISystem {
-  getArchitecture(): IArchitecture;
-  setArchitecture(architecture: IArchitecture): void;
-
-  getModel<T extends IModel>(key: Type<T>): T | null;
-  getSystem<T extends ISystem>(key: Type<T>): T | null;
-  getUtility<T extends IUtility>(key: Type<T>): T | null;
+  getModel<T extends IModel>(key: TypeToken<T>): T | null;
+  getSystem<T extends ISystem>(key: TypeToken<T>): T | null;
+  getUtility<T extends IUtility>(key: TypeToken<T>): T | null;
 
   sendEvent<T>(e: T, key?: EventKey<T>): void;
   sendEventByType<T>(key: Type<T>, ...args: any[]): void;
@@ -575,15 +582,15 @@ abstract class AbstractSystem implements ISystem {
   protected abstract onInit(): void;
 }
 
-interface IModel
-  extends IBelongToArchitecture, ICanSetArchitecture, ICanGetUtility, ICanSendEvent {
+interface IModel {
+  getUtility<T extends IUtility>(key: TypeToken<T>): T | null;
+  sendEvent<T>(e: T, key?: EventKey<T>): void;
+  sendEventByType<T>(key: Type<T>, ...args: any[]): void;
   init(): void;
 }
 
 abstract class AbstractModel implements IModel {
-  getArchitecture(): IArchitecture;
-  setArchitecture(architecture: IArchitecture): void;
-  getUtility<T extends IUtility>(key: Type<T>): T | null;
+  getUtility<T extends IUtility>(key: TypeToken<T>): T | null;
   sendEvent<T>(e: T, key?: EventKey<T>): void;
   sendEventByType<T>(key: Type<T>, ...args: any[]): void;
 
@@ -618,13 +625,11 @@ abstract class AbstractController extends Laya.Script implements IController {
   /** 重写后，onAwake 阶段自动绑定架构；返回 null 表示手动绑定 */
   protected getArchitectureClass(): AbstractType<Architecture<any>> | null;
 
-  getSystem<T extends ISystem>(key: Type<T>): T | null;
-  getModel<T extends IModel>(key: Type<T>): T | null;
-  getUtility<T extends IUtility>(key: Type<T>): T | null;
+  getSystem<T extends ISystem>(key: TypeToken<T>): T | null;
+  getModel<T extends IModel>(key: TypeToken<T>): T | null;
+  getUtility<T extends IUtility>(key: TypeToken<T>): T | null;
   sendCommand<TResult = void>(command: ICommand<TResult>): TResult;
   sendQuery<TResult>(query: IQuery<TResult>): TResult;
-  sendEvent<T>(e: T, key?: EventKey<T>): void;
-  sendEventByType<T>(key: Type<T>, ...args: any[]): void;
   registerEvent<T>(key: EventKey<T>, onEvent: Action1<T>): IUnRegister;
   unRegisterEvent<T>(key: EventKey<T>, onEvent: Action1<T>): void;
 

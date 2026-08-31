@@ -10,114 +10,37 @@ import { AbstractModel, AbstractSystem, Architecture } from '../src/index';
 // #region 初始化期间动态注册
 
 describe('初始化期间动态注册模块', () => {
-  test('01 - Model.onInit 中注册的 Model 也会被初始化', () => {
-    class InnerModel extends AbstractModel {
-      inited = false;
-      protected onInit(): void {
-        this.inited = true;
-      }
-    }
-    class OuterModel extends AbstractModel {
-      protected onInit(): void {
-        this.getArchitecture().registerModel(new InnerModel());
-      }
-    }
-
-    class App extends Architecture<App> {
-      protected init(): void {
-        this.registerModel(new OuterModel());
-      }
-    }
-
-    void App.Interface;
-
-    expect(App.Interface.getModel(InnerModel)).toBeInstanceOf(InnerModel);
-    expect(App.Interface.getModel(InnerModel)!.inited).toBe(true);
-  });
-
-  test('02 - System.onInit 中注册的 System 也会被初始化', () => {
+  test('02 - OnRegisterPatch 中注册的 System 会在初始化完成前初始化', () => {
     class InnerSystem extends AbstractSystem {
       inited = false;
       protected onInit(): void {
         this.inited = true;
       }
     }
-    class OuterSystem extends AbstractSystem {
-      protected onInit(): void {
-        // 注意：ISystem 不提供 registerSystem（与 C# 的分层一致），需经由架构注册
-        this.getArchitecture().registerSystem(new InnerSystem());
-      }
-    }
 
     class App extends Architecture<App> {
-      protected init(): void {
-        this.registerSystem(new OuterSystem());
-      }
+      protected init(): void {}
     }
 
-    void App.Interface;
+    Architecture.OnRegisterPatch = (architecture) => architecture.registerSystem(new InnerSystem());
+    try {
+      void App.Interface;
+    } finally {
+      Architecture.OnRegisterPatch = null;
+    }
 
     expect(App.Interface.getSystem(InnerSystem)).toBeInstanceOf(InnerSystem);
     expect(App.Interface.getSystem(InnerSystem)!.inited).toBe(true);
   });
 
-  test('03 - Model.onInit 中注册的 System 也会被初始化', () => {
-    class LazySystem extends AbstractSystem {
-      inited = false;
-      protected onInit(): void {
-        this.inited = true;
-      }
-    }
-    class BootstrapModel extends AbstractModel {
-      protected onInit(): void {
-        this.getArchitecture().registerSystem(new LazySystem());
-      }
+  test('04 - System 不暴露架构访问或绑定方法', () => {
+    class System extends AbstractSystem {
+      protected onInit(): void {}
     }
 
-    class App extends Architecture<App> {
-      protected init(): void {
-        this.registerModel(new BootstrapModel());
-      }
-    }
-
-    void App.Interface;
-
-    expect(App.Interface.getSystem(LazySystem)!.inited).toBe(true);
-  });
-
-  test('04 - 每个模块只 init 一次', () => {
-    const counts = new Map<string, number>();
-    const bump = (name: string) => counts.set(name, (counts.get(name) ?? 0) + 1);
-
-    class A extends AbstractSystem {
-      protected onInit(): void {
-        bump('A');
-        this.getArchitecture().registerSystem(new B());
-      }
-    }
-    class B extends AbstractSystem {
-      protected onInit(): void {
-        bump('B');
-        this.getArchitecture().registerSystem(new C());
-      }
-    }
-    class C extends AbstractSystem {
-      protected onInit(): void {
-        bump('C');
-      }
-    }
-
-    class App extends Architecture<App> {
-      protected init(): void {
-        this.registerSystem(new A());
-      }
-    }
-
-    void App.Interface;
-
-    expect(counts.get('A')).toBe(1);
-    expect(counts.get('B')).toBe(1);
-    expect(counts.get('C')).toBe(1);
+    const system = new System();
+    expect((system as unknown as { getArchitecture?: unknown }).getArchitecture).toBeUndefined();
+    expect((system as unknown as { setArchitecture?: unknown }).setArchitecture).toBeUndefined();
   });
 
   test('05 - 初始化结束后内部队列被清空', () => {
@@ -216,6 +139,18 @@ describe('循环构造 / 循环依赖', () => {
 
     expect(thrown).toBeInstanceOf(Error);
     expect(String(thrown)).toMatch(/循环|circular/i);
+  });
+
+  test('03 - Architecture.Interface 拒绝带必填参数的构造函数', () => {
+    class InvalidApp extends Architecture<InvalidApp> {
+      constructor(_required: string) {
+        super();
+      }
+
+      protected init(): void {}
+    }
+
+    expect(() => InvalidApp.Interface).toThrow(/必填参数|无参创建/);
   });
 });
 

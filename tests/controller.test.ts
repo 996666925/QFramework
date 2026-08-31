@@ -192,15 +192,10 @@ describe('AbstractController', () => {
     expect(controller.lastHp).toBe(controller.getHp());
   });
 
-  test('07 - 可以发送事件', () => {
+  test('07 - Controller 不具备发送事件能力', () => {
     const controller = new StubNode().addComponent(HudController);
-    controller.onAwake();
-    const received: number[] = [];
-
-    GameApp.Interface.registerEvent<HpChangedEvent>(HpChangedEvent, (e) => received.push(e.hp));
-    controller.sendEventByType(HpChangedEvent, 55);
-
-    expect(received).toContain(55);
+    expect((controller as unknown as { sendEvent?: unknown }).sendEvent).toBeUndefined();
+    expect((controller as unknown as { sendEventByType?: unknown }).sendEventByType).toBeUndefined();
   });
 
   test('08 - 可以获取 Utility', () => {
