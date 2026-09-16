@@ -1,6 +1,6 @@
 # C# → TypeScript 迁移对照
 
-本文说明 QFramework 从 C# 移植到 TypeScript / LayaAir 时的映射关系、行为差异与踩坑点。
+本文说明 QFramework 从 C# 移植到 **TypeScript**（`@qframework/core` 核心层 + 各引擎适配层）时的映射关系、行为差异与踩坑点。
 
 - [命名空间与命名风格](#命名空间与命名风格)
 - [类型系统映射](#类型系统映射)
@@ -14,7 +14,7 @@
 
 | C# | TypeScript | 说明 |
 |---|---|---|
-| `namespace QFramework` | ES Module（`packages/laya/src/index.ts`） | 全部从包根路径导入 |
+| `namespace QFramework` | ES Module（`qframework-laya` / `@qframework/core`） | 从包根路径导入；引擎包已 re-export 全部核心 API |
 | `public void Foo()` | `foo()` | 方法名改为小驼峰 |
 | `public T Value { get; set; }` | `get value()` / `set value()` | 属性名改为小驼峰 |
 | `private T mValue;` | `private mValue: T` | 私有字段沿用 `m` 前缀 |

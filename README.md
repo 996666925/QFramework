@@ -5,7 +5,7 @@ QFramework v1.0 的 **TypeScript 核心与多引擎适配层**，由 [QFramework
 一套极简的 **MVC + 分层架构** 框架，核心目标是：**用一个统一的架构约束，把「数据」「逻辑」「表现」彻底分开**。
 
 ```
-表现层  Controller（Laya.Script）    —— 只做「发命令 / 查数据 / 收事件」
+表现层  Controller（Laya.Script / FairyGUI 组件）  —— 只做「发命令 / 查数据 / 收事件」
    ↓ 命令 / ↑ 查询 / ↕ 事件
 架构层  Architecture                 —— 注册与分发的中枢
    ├─ System    领域逻辑（可互相调用、可注册事件）
@@ -18,6 +18,7 @@ QFramework v1.0 的 **TypeScript 核心与多引擎适配层**，由 [QFramework
 ## 目录
 
 - [快速开始](#快速开始)
+- [包结构](#包结构)
 - [在 LayaAir 中使用](#在-layaair-中使用)
 - [在 FairyGUI-Babylon 中使用](#在-fairygui-babylon-中使用)
 - [核心概念](#核心概念)
@@ -30,22 +31,36 @@ QFramework v1.0 的 **TypeScript 核心与多引擎适配层**，由 [QFramework
 
 ## 快速开始
 
+### 包结构
+
+本仓库是 **pnpm workspace 多包结构**，核心实现与引擎适配层彻底分离：
+
+| 包 | 内容 | 运行时依赖 |
+|---|---|---|
+| `qframework-laya` | LayaAir 适配层（`AbstractController`、`unRegisterWhenNodeDestroyed`……）+ **全部核心 API** | `@qframework/core` |
+| `qframework-fairygui-babylon` | FairyGUI-Babylon 适配层 + **全部核心 API** | `@qframework/core` |
+| `@qframework/core` | 与引擎无关的核心实现（`Architecture` / `Command` / `Query` / `Model` / `System` / `Utility` / `BindableProperty`……） | 无 |
+
+> 两个引擎包都执行了 `export * from '@qframework/core'`，**所有核心 API 都能直接从引擎包导入**。
+> 所以引擎项目只需要安装对应的引擎包，不必额外安装 `@qframework/core`。
+
 ### 安装
 
 ```bash
+# LayaAir 项目（核心 API 已由引擎包 re-export）
 pnpm add qframework-laya
 # 或 npm install qframework-laya
 
-# 需要使用纯核心层时：
-pnpm add @qframework/core
-
-# 使用 FairyGUI-Babylon 引擎层时：
+# FairyGUI-Babylon 项目
 pnpm add qframework-fairygui-babylon fairygui-babylon @babylonjs/core
+
+# 纯核心层：不接任何引擎时（例如服务端逻辑或单元测试）
+pnpm add @qframework/core
 ```
 
 ### TS 配置
 
-本库的类型声明引用了 LayaAir 的全局 `Laya` 命名空间。若你的项目**尚未引入 LayaAir 类型**且未开启 `skipLibCheck`，`tsc` 会报 `Cannot find name 'Laya'`。
+`qframework-laya` 的类型声明引用了 LayaAir 的全局 `Laya` 命名空间。若你的项目**尚未引入 LayaAir 类型**且未开启 `skipLibCheck`，`tsc` 会报 `Cannot find name 'Laya'`。使用 `@qframework/core` 或 `qframework-fairygui-babylon` 时没有这个要求。
 
 在 `tsconfig.json` 中开启即可（Vite / Next 等主流模板默认已开启）：
 
@@ -186,7 +201,7 @@ installLaya(laya); // 异步加载 Laya 时手动注入（必须在 import 本�
 ```
 
 > ⚠️ `AbstractController` 在**模块求值时**就会解析 `Laya.Script` 作为基类。
-> 若 Laya 是异步加载的，务必在 `import 'QFramework'` **之前**完成注入，否则它会退化成空基类且无法补救。
+> 若 Laya 是异步加载的，务必在 `import 'qframework-laya'` **之前**完成注入，否则它会退化成空基类且无法补救。
 
 ---
 
@@ -281,24 +296,31 @@ unRegisterWhenNodeDestroyed(unRegister, this.node);
 
 ## 模块清单
 
-| 模块 | 说明 |
-|---|---|
-| `Architecture<T>` | 架构基类，注册与分发中枢，按子类保持单例 |
-| `AbstractController` | Laya 脚本版 Controller，架构入口 |
-| `AbstractSystem` / `ISystem` | 领域逻辑层 |
-| `AbstractModel` / `IModel` | 数据层 |
-| `IUtility` | 基础设施层 |
-| `AbstractCommand` / `AbstractCommandWithResult<T>` | 写操作（无返回值 / 带返回值） |
-| `AbstractQuery<T>` | 读操作 |
-| `BindableProperty<T>` | 可绑定属性，值变化自动通知 |
-| `TypeEventSystem` | 类型事件系统（架构内部 + 全局 `Global`） |
-| `EasyEvent` / `EasyEvent1/2/3` | 轻量事件（0/1/2/3 个参数） |
-| `EasyEvents` | 事件集合，按 key 隔离 |
-| `OrEvent` / `orEvent` | 或事件：任一源事件触发即触发 |
-| `IOCContainer` | 简易 IOC 容器 |
-| `IUnRegister` / `CustomUnRegister` | 注销机制 |
-| `ArchitectureCapabilities` | 把架构能力挂到任意对象上 |
-| `getLaya` / `requireLaya` / `installLaya` | Laya 全局对象访问 |
+| 模块 | 所属包 | 说明 |
+|---|---|---|
+| `Architecture<T>` | core | 架构基类，注册与分发中枢，按子类保持单例 |
+| `AbstractSystem` / `ISystem` | core | 领域逻辑层 |
+| `AbstractModel` / `IModel` | core | 数据层 |
+| `IUtility` | core | 基础设施层 |
+| `AbstractCommand` / `AbstractCommandWithResult<T>` | core | 写操作（无返回值 / 带返回值） |
+| `AbstractQuery<T>` | core | 读操作 |
+| `BindableProperty<T>` | core | 可绑定属性，值变化自动通知 |
+| `TypeEventSystem` | core | 类型事件系统（架构内部 + 全局 `Global`） |
+| `EasyEvent` / `EasyEvent1/2/3` | core | 轻量事件（0/1/2/3 个参数） |
+| `EasyEvents` | core | 事件集合，按 key 隔离 |
+| `OrEvent` / `orEvent` | core | 或事件：任一源事件触发即触发 |
+| `IOCContainer` | core | 简易 IOC 容器 |
+| `IUnRegister` / `CustomUnRegister` | core | 注销机制 |
+| `ArchitectureCapabilities` | core | 把架构能力挂到任意对象上 |
+| `AbstractController` | laya | Laya 脚本版 Controller，架构入口 |
+| `unRegisterWhenNodeDestroyed` / `unRegisterWhenComponentDestroyed` | laya | 绑定 Laya 节点 / 组件销毁自动注销 |
+| `getLaya` / `requireLaya` / `installLaya` | laya | Laya 全局对象访问 |
+| `AbstractFairyGUIController<TView>` | fairygui-babylon | FairyGUI 视图版 Controller，架构入口 |
+| `unRegisterWhenFairyGUIDisposed` / `unRegisterWhenFairyGUIUndisplayed` | fairygui-babylon | 绑定 `dispose()` / `fui_undisplay` 自动注销 |
+| `installFairyGUIBabylon` | fairygui-babylon | FairyGUI 运行时注入（读取 `EventType.UNDISPLAY`） |
+
+> `core` = `@qframework/core`，`laya` = `qframework-laya`，`fairygui-babylon` = `qframework-fairygui-babylon`。
+> 引擎包会 re-export 对应 `core` 的全部导出，因此引擎项目可以统一从引擎包导入。
 
 ---
 
@@ -336,7 +358,7 @@ pnpm run test:watch
 
 ## 测试
 
-测试使用 [Rstest](https://rstest.rs/)，共 **252** 个用例，覆盖 10 个文件：
+测试使用 [Rstest](https://rstest.rs/)，共 **256** 个用例，覆盖 11 个文件：
 
 | 文件 | 用例数 | 覆盖内容 |
 |---|---|---|
@@ -344,12 +366,13 @@ pnpm run test:watch
 | `tests/easy-event.test.ts` | 29 | `EasyEvent` / `EasyEvent1/2/3` / `EasyEvents`、重入触发 |
 | `tests/type-event-system.test.ts` | 23 | `TypeEventSystem`、全局事件、`IOnEvent` |
 | `tests/bindable-property.test.ts` | 38 | `BindableProperty`、比较器、Laya 值类型适配 |
-| `tests/architecture.test.ts` | 48 | `Architecture`、Command/Query/Model/System/Utility、分层约束 |
-| `tests/architecture-robustness.test.ts` | 9 | 初始化期动态注册、初始化失败、循环构造 / 循环依赖 |
+| `tests/architecture.test.ts` | 49 | `Architecture`、Command/Query/Model/System/Utility、分层约束 |
+| `tests/architecture-robustness.test.ts` | 8 | 初始化期动态注册、初始化失败、循环构造 / 循环依赖 |
 | `tests/controller.test.ts` | 32 | `AbstractController`、节点销毁自动注销、Laya 运行时 |
 | `tests/or-event.test.ts` | 12 | `OrEvent` |
 | `tests/integration.test.ts` | 12 | 端到端「商店购买」场景 |
 | `tests/docs-examples.test.ts` | 34 | **校验 `GETTING-STARTED.md` 里的示例代码真的能跑** |
+| `tests/fairygui-babylon.test.ts` | 4 | FairyGUI-Babylon 适配层（`dispose` / `fui_undisplay` 自动注销、控制器生命周期） |
 
 > `docs-examples.test.ts` 逐章对应入门文档的示例。文档更新时请同步它，
 > 以保证教程里的代码不是"看起来对"的伪代码。
@@ -366,7 +389,7 @@ pnpm run test:watch
 
 ## License
 
-本项目是 [QFramework (C#)](https://github.com/liangxiegame/QFramework) 的 **TypeScript / LayaAir 移植版本**。
+本项目是 [QFramework (C#)](https://github.com/liangxiegame/QFramework) 的 **TypeScript 移植版本**（核心层 + 多引擎适配层）。
 
 | | 版权 | 许可 |
 |---|---|---|

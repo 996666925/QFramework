@@ -1,15 +1,23 @@
 # API 参考
 
-核心 API 来自 `packages/core/src/index.ts`，Laya 和 FairyGUI-Babylon 分别位于独立的引擎层包：
+核心 API 位于 `@qframework/core`，Laya 与 FairyGUI-Babylon 适配层分别位于独立的引擎包。
+由于两个引擎包都执行了 `export * from '@qframework/core'`，**请按项目所用引擎统一从引擎包导入**：
 
 ```ts
+// LayaAir 项目：核心 API 与 Laya 适配层都从这一个包导入
+import { Architecture, BindableProperty, AbstractController } from 'qframework-laya';
+
+// FairyGUI-Babylon 项目：核心 API 与 FairyGUI 适配层都从这一个包导入
+import { Architecture, AbstractFairyGUIController } from 'qframework-fairygui-babylon';
+
+// 纯核心层（不接任何引擎）时，也可以只装并导入 @qframework/core
 import { Architecture, BindableProperty } from '@qframework/core';
-import { AbstractController } from 'qframework-laya';
-import { AbstractFairyGUIController } from 'qframework-fairygui-babylon';
 import type { Type, EventKey, IArchitecture } from '@qframework/core';
 ```
 
-> 说明：以下签名中 `Type<T>` = `new (...args: any[]) => T`，是本框架统一使用的「类型标识」。
+> 说明：下文**未标注所属包**的章节均属于 `@qframework/core`（已被两个引擎包 re-export）；标注了所属包的章节属于对应引擎包。
+>
+> 以下签名中 `Type<T>` = `new (...args: any[]) => T`，是本框架统一使用的「类型标识」。
 
 - [基础类型](#基础类型)
 - [Laya 运行时](#laya-运行时)
@@ -75,6 +83,8 @@ system.register<number>(Number, onEvent);       // 基本类型（对应 send(42
 ---
 
 ## Laya 运行时
+
+所属包：`qframework-laya`。
 
 ```ts
 /** Laya 全局对象（class Laya 与 namespace Laya 合并后的类型） */
@@ -612,6 +622,8 @@ interface IUtility {}
 
 ## Controller
 
+所属包：`qframework-laya`（FairyGUI 版本见 [FairyGUI-Babylon 适配层](#fairygui-babylon-适配层)）。
+
 ```ts
 interface IController
   extends IBelongToArchitecture, ICanSendCommand, ICanGetSystem, ICanGetModel,
@@ -665,6 +677,8 @@ class HudController extends AbstractController {
 
 ## Laya 生命周期注销
 
+所属包：`qframework-laya`。
+
 ```ts
 /** 挂在节点上的注销触发器组件 */
 interface IUnRegisterTrigger {
@@ -706,7 +720,7 @@ unRegisterWhenComponentDestroyed(unRegister, someComponent);
 
 ## FairyGUI-Babylon 适配层
 
-从 `qframework-fairygui-babylon` 导入以下 API。适配层使用结构化的 FairyGUI 对象契约，因此可以与 `fairygui-babylon` 的 `GObject` / `GComponent` 直接配合。
+所属包：`qframework-fairygui-babylon`。适配层使用结构化的 FairyGUI 对象契约，因此可以与 `fairygui-babylon` 的 `GObject` / `GComponent` 直接配合。
 
 ```ts
 import {

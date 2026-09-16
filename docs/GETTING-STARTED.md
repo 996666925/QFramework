@@ -155,6 +155,26 @@ type Type<T> = new (...args: any[]) => T;   // 就是"某个类的构造函数"
 
 **记住这一条，后面所有 API 的写法都顺理成章了。**
 
+### 0.4 装包与包结构
+
+本仓库是 **pnpm workspace 多包结构**：核心实现与引擎适配层分离，但**引擎包会 re-export 全部核心 API**。
+
+| 包 | 适用场景 |
+|---|---|
+| `qframework-laya` | LayaAir 项目（**本教程默认使用**） |
+| `qframework-fairygui-babylon` | FairyGUI + Babylon.js 项目 |
+| `@qframework/core` | 不接引擎的纯逻辑层 / 单元测试 |
+
+```bash
+# LayaAir 项目只需要装这一个包
+pnpm add qframework-laya
+```
+
+> 本教程所有示例统一从 `qframework-laya` 导入 —— 它内部执行了 `export * from '@qframework/core'`，
+> 因此 `Architecture`、`BindableProperty`、`AbstractCommand` 这些核心 API 都能直接从这里拿到，
+> 不需要再单独安装或导入 `@qframework/core`。
+> 如果你在做不依赖引擎的纯逻辑层，把导入路径换成 `@qframework/core` 即可，API 完全一致。
+
 ---
 
 ## 第 1 章 五分钟跑通第一个架构
@@ -1184,7 +1204,7 @@ App.Interface.sendCommand(new IncreaseCountCommand());
 原因：Laya 在本库加载之后才就绪，AbstractController 退化成了空基类。
 ```
 
-解决：确保 `import 'LayaAir'` 在 `import 'QFramework'` 之前；异步加载时用 `installLaya()`。
+解决：确保 `import 'LayaAir'` 在 `import 'qframework-laya'` 之前；异步加载时用 `installLaya()`。
 
 ### 8.5 事件注销不掉
 
