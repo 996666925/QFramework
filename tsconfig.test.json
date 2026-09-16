@@ -3,5 +3,5 @@
   "compilerOptions": {
     "rootDir": "."
   },
-  "include": ["src", "tests", "types/LayaAir.d.ts"]
+  "include": ["packages/core/src", "packages/laya/src", "packages/fairygui-babylon/src", "tests", "types/LayaAir.d.ts"]
 }

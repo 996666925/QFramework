@@ -1,10 +1,12 @@
 # API 参考
 
-全部导出均来自 `src/index.ts`，可从包根路径直接导入：
+核心 API 来自 `packages/core/src/index.ts`，Laya 和 FairyGUI-Babylon 分别位于独立的引擎层包：
 
 ```ts
-import { Architecture, AbstractController, BindableProperty } from 'qframework-laya';
-import type { Type, EventKey, IArchitecture } from 'qframework-laya';
+import { Architecture, BindableProperty } from '@qframework/core';
+import { AbstractController } from 'qframework-laya';
+import { AbstractFairyGUIController } from 'qframework-fairygui-babylon';
+import type { Type, EventKey, IArchitecture } from '@qframework/core';
 ```
 
 > 说明：以下签名中 `Type<T>` = `new (...args: any[]) => T`，是本框架统一使用的「类型标识」。
@@ -23,6 +25,7 @@ import type { Type, EventKey, IArchitecture } from 'qframework-laya';
 - [System / Model / Utility](#system--model--utility)
 - [Controller](#controller)
 - [Laya 生命周期注销](#laya-生命周期注销)
+- [FairyGUI-Babylon 适配层](#fairygui-babylon-适配层)
 - [OrEvent](#orevent)
 
 ---
@@ -698,6 +701,25 @@ unRegisterWhenNodeDestroyed(registerGlobalEvent(this, LevelUpEvent), this.node);
 // 组件形式
 unRegisterWhenComponentDestroyed(unRegister, someComponent);
 ```
+
+---
+
+## FairyGUI-Babylon 适配层
+
+从 `qframework-fairygui-babylon` 导入以下 API。适配层使用结构化的 FairyGUI 对象契约，因此可以与 `fairygui-babylon` 的 `GObject` / `GComponent` 直接配合。
+
+```ts
+import {
+  AbstractFairyGUIController,
+  unRegisterWhenFairyGUIDisposed,
+  unRegisterWhenFairyGUIUndisplayed,
+} from 'qframework-fairygui-babylon';
+```
+
+- `AbstractFairyGUIController<TView>`：持有 `view`，通过 `getArchitectureClass()` 自动绑定架构；推荐使用 `YourController.create(view)` 创建并立即完成 `onAwake()`；`destroy()` 会调用 `onDestroy()` 并释放视图。
+- `unRegisterWhenFairyGUIDisposed(unRegister, object)`：在 `GObject.dispose()` 时注销。
+- `unRegisterWhenFairyGUIUndisplayed(unRegister, object)`：在 `fui_undisplay` 事件触发时注销。
+- `installFairyGUIBabylon(runtime)`：可选的运行时注入，用于从 `EventType.UNDISPLAY` 读取实际事件常量。
 
 ---
 

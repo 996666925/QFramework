@@ -23,8 +23,8 @@ import {
   unRegisterGlobalEvent,
   unRegisterWhenComponentDestroyed,
   unRegisterWhenNodeDestroyed,
-} from '../src/index';
-import type { IArchitecture, ICommand, IOnEvent, IQuery, IUtility } from '../src/index';
+} from '../packages/laya/src/index';
+import type { IArchitecture, ICommand, IOnEvent, IQuery, IUtility } from '../packages/laya/src/index';
 import { StubNode } from './laya-stub';
 
 // #region 第 1 章 计数器

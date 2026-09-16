@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, test } from '@rstest/core';
-import { BindableProperty, registerBuiltInComparers } from '../src/index';
+import { BindableProperty, registerBuiltInComparers } from '../packages/laya/src/index';
 import {
   StubBounds,
   StubColor,

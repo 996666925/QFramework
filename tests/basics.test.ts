@@ -8,8 +8,8 @@ import {
   IOCContainer,
   addToUnregisterList,
   unRegisterAll,
-} from '../src/index';
-import type { IUnRegister } from '../src/index';
+} from '../packages/laya/src/index';
+import type { IUnRegister } from '../packages/laya/src/index';
 
 // #region IOCContainer
 

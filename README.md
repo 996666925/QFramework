@@ -1,6 +1,6 @@
 # QFramework.ts
 
-QFramework v1.0 的 **TypeScript / LayaAir 适配版**，由 [QFramework(C#)](https://github.com/liangxiegame/QFramework) 重构而来。
+QFramework v1.0 的 **TypeScript 核心与多引擎适配层**，由 [QFramework(C#)](https://github.com/liangxiegame/QFramework) 重构而来。
 
 一套极简的 **MVC + 分层架构** 框架，核心目标是：**用一个统一的架构约束，把「数据」「逻辑」「表现」彻底分开**。
 
@@ -19,6 +19,7 @@ QFramework v1.0 的 **TypeScript / LayaAir 适配版**，由 [QFramework(C#)](ht
 
 - [快速开始](#快速开始)
 - [在 LayaAir 中使用](#在-layaair-中使用)
+- [在 FairyGUI-Babylon 中使用](#在-fairygui-babylon-中使用)
 - [核心概念](#核心概念)
 - [模块清单](#模块清单)
 - [完整文档](#完整文档)
@@ -32,8 +33,14 @@ QFramework v1.0 的 **TypeScript / LayaAir 适配版**，由 [QFramework(C#)](ht
 ### 安装
 
 ```bash
-bun add qframework-laya
+pnpm add qframework-laya
 # 或 npm install qframework-laya
+
+# 需要使用纯核心层时：
+pnpm add @qframework/core
+
+# 使用 FairyGUI-Babylon 引擎层时：
+pnpm add qframework-fairygui-babylon fairygui-babylon @babylonjs/core
 ```
 
 ### TS 配置
@@ -183,6 +190,38 @@ installLaya(laya); // 异步加载 Laya 时手动注入（必须在 import 本�
 
 ---
 
+## 在 FairyGUI-Babylon 中使用
+
+`qframework-fairygui-babylon` 为 [FairyGUI-babylon](https://github.com/996666925/FairyGUI-babylon) 提供引擎层适配。它通过 `GObject` 的 `dispose()` 和 `fui_undisplay` 事件接入生命周期，不要求 core 依赖 Babylon.js。
+
+```ts
+import {
+  AbstractFairyGUIController,
+  unRegisterWhenFairyGUIUndisplayed,
+} from 'qframework-fairygui-babylon';
+import type { GComponent } from 'fairygui-babylon';
+
+class HudController extends AbstractFairyGUIController<GComponent> {
+  protected getArchitectureClass() {
+    return CounterApp;
+  }
+
+  protected onInit(): void {
+    const unregister = this.registerEvent(CountChangedEvent, () => this.refresh());
+    unRegisterWhenFairyGUIUndisplayed(unregister, this.view);
+  }
+
+  private refresh(): void {
+    // 更新 FairyGUI 组件
+  }
+}
+
+// 工厂会在子类初始化完成后自动调用 onAwake()
+const hud = HudController.create(ui.menu);
+```
+
+也可以直接使用 `unRegisterWhenFairyGUIDisposed` 将任意事件或绑定属性的注销器绑定到 `GObject.dispose()`。主动调用 `controller.destroy()` 会执行 `onDestroy()` 并释放视图；视图从外部释放时也会自动销毁控制器。
+
 ## 核心概念
 
 ### 分层与调用方向
@@ -278,23 +317,22 @@ unRegisterWhenNodeDestroyed(unRegister, this.node);
 ## 开发命令
 
 ```bash
-bun install         # 安装依赖
-bun run build       # 构建产物到 dist/（含 .d.ts）
-bun run dev         # watch 模式构建
-bun run typecheck   # 类型检查（src 与 tests，strict 模式）
-bun run test        # 运行测试
-bun run test:watch
+pnpm install        # 安装 workspace 依赖
+pnpm run build      # 递归构建 core / laya workspace 包
+pnpm run dev        # watch 模式构建
+pnpm run typecheck  # 类型检查（workspace 包与 tests，strict 模式）
+pnpm run test       # 运行测试
+pnpm run test:watch
 ```
 
 ## 类型检查
 
 源码与测试均在 **`strict: true`** 下通过检查。
 
-- `tsconfig.json` —— 只覆盖 `src`（`rootDir: "src"`，供 rslib 生成 `.d.ts`）
+- `tsconfig.json` —— 覆盖 `packages/core`、`packages/laya` 与 Laya 类型声明
 - `tsconfig.test.json` —— 继承前者，额外覆盖 `tests`（`rootDir: "."`）
 
-两者分开是必要的：`.d.ts` 生成要求所有被 include 的源文件都在 `rootDir` 下，
-而测试文件不在 `src` 内，混在一起会触发 `TS6059`。
+两者分开是必要的：测试文件不属于发布包，避免测试代码进入 workspace 包的声明生成流程。
 
 ## 测试
 
@@ -321,7 +359,7 @@ bun run test:watch
 `tests/laya-stub.ts` 提供了 Laya 的最小化桩（`Script` / `Node` / 各值类型），
 并通过 `rstest.config.ts` 的 `setupFiles` 在**测试模块加载之前**注入 `globalThis.Laya`。
 
-> 该文件**不能** import `src/index` —— 否则 `src/index` 会先于 Laya 注入求值，
+> 该文件**不能** import `packages/laya/src/index` —— 否则 `packages/laya/src/index` 会先于 Laya 注入求值，
 > `AbstractController` 会退化成空基类。
 
 ---

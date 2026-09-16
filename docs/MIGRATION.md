@@ -14,7 +14,7 @@
 
 | C# | TypeScript | 说明 |
 |---|---|---|
-| `namespace QFramework` | ES Module（`src/index.ts`） | 全部从包根路径导入 |
+| `namespace QFramework` | ES Module（`packages/laya/src/index.ts`） | 全部从包根路径导入 |
 | `public void Foo()` | `foo()` | 方法名改为小驼峰 |
 | `public T Value { get; set; }` | `get value()` / `set value()` | 属性名改为小驼峰 |
 | `private T mValue;` | `private mValue: T` | 私有字段沿用 `m` 前缀 |
@@ -386,14 +386,14 @@ await import('./MyController');
 
 ### 2. 测试里 Laya 桩的加载顺序
 
-`tests/laya-stub.ts` 作为 `setupFiles` 运行，**且不能 import `src/index`**：
+`tests/laya-stub.ts` 作为 `setupFiles` 运行，**且不能 import `packages/laya/src/index`**：
 
 ```ts
-// ❌ 错误：import 会先求值 src/index，此时 Laya 还没注入
-import { installLaya } from '../src/index';
+// ❌ 错误：import 会先求值 Laya 适配层，此时 Laya 还没注入
+import { installLaya } from '../packages/laya/src/index';
 installLaya(stubLaya);
 
-// ✅ 正确：先设置全局，再让测试文件去 import src/index
+// ✅ 正确：先设置全局，再让测试文件去 import Laya 适配层
 (globalThis as unknown as { Laya: unknown }).Laya = stubLaya;
 ```
 

@@ -15,8 +15,8 @@ import {
   Architecture,
   ArchitectureCapabilities,
   BindableProperty,
-} from '../src/index';
-import type { IArchitecture, ICommand, IModel, IQuery, IUtility, TypeToken } from '../src/index';
+} from '../packages/laya/src/index';
+import type { IArchitecture, ICommand, IModel, IQuery, IUtility, TypeToken } from '../packages/laya/src/index';
 
 // #region 演示用的模块
 

@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, test } from '@rstest/core';
-import { AbstractModel, AbstractSystem, Architecture } from '../src/index';
+import { AbstractModel, AbstractSystem, Architecture } from '../packages/laya/src/index';
 
 // #region 初始化期间动态注册
 

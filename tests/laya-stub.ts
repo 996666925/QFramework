@@ -1,8 +1,8 @@
 /**
  * LayaAir 的最小化测试桩。
  *
- * 重要：本文件 **不能** import '../src/index'。
- *   原因：`AbstractController` 在 `src/index` 模块求值时就会解析 `Laya.Script` 作为基类，
+ * 重要：本文件 **不能** import '../packages/laya/src/index'。
+ *   原因：`AbstractController` 在 `packages/laya/src/index` 模块求值时就会解析 `Laya.Script` 作为基类，
  *   一旦那时 `globalThis.Laya` 还没就绪，它就会退化成空基类，后续再也改不回来。
  *   因此本文件必须作为 rstest 的 `setupFiles` 在测试模块加载 **之前** 执行，
  *   并且只做一件事：把 Laya 挂到 globalThis。

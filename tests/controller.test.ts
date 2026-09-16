@@ -24,8 +24,8 @@ import {
   requireLaya,
   unRegisterWhenComponentDestroyed,
   unRegisterWhenNodeDestroyed,
-} from '../src/index';
-import type { AbstractType, LayaNamespace } from '../src/index';
+} from '../packages/laya/src/index';
+import type { AbstractType, LayaNamespace } from '../packages/laya/src/index';
 import { StubNode, StubScript, StubVector3, stubLaya } from './laya-stub';
 
 // #region 演示模块

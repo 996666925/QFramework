@@ -7,7 +7,7 @@ import {
   TypeEventSystem,
   registerGlobalEvent,
   unRegisterGlobalEvent,
-} from '../src/index';
+} from '../packages/laya/src/index';
 
 // #region 事件定义
 

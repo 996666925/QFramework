@@ -18,8 +18,8 @@ import {
   Architecture,
   BindableProperty,
   unRegisterWhenNodeDestroyed,
-} from '../src/index';
-import type { IUtility } from '../src/index';
+} from '../packages/laya/src/index';
+import type { IUtility } from '../packages/laya/src/index';
 import { StubNode } from './laya-stub';
 
 // #region 数据层：Model

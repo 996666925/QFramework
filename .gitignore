@@ -14,3 +14,4 @@ doc_build/
 !.vscode/extensions.json
 .idea
 target/
+.tmp/

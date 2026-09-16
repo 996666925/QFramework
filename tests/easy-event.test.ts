@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, test } from '@rstest/core';
-import { EasyEvent, EasyEvent1, EasyEvent2, EasyEvent3, EasyEvents } from '../src/index';
+import { EasyEvent, EasyEvent1, EasyEvent2, EasyEvent3, EasyEvents } from '../packages/laya/src/index';
 
 // #region EasyEvent（无参）
 

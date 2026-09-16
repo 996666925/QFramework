@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, test } from '@rstest/core';
-import { EasyEvent, EasyEvent1, OrEvent, orEvent } from '../src/index';
+import { EasyEvent, EasyEvent1, OrEvent, orEvent } from '../packages/laya/src/index';
 
 describe('OrEvent', () => {
   test('01 - 任意一个源事件触发都会触发 OrEvent', () => {

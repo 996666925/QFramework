@@ -1,23 +1,14 @@
 /****************************************************************************
- * QFramework v1.0 —— TypeScript / LayaAir 适配版
+ * QFramework v1.0 —— 核心层
  *
- * 本文件是 QFramework (C#) 的 TypeScript / LayaAir 移植版本。
+ * 本文件只包含与具体引擎无关的 QFramework 核心实现。
  *
  * 原作  QFramework (C#)
  *       https://qframework.cn
  *       https://github.com/liangxiegame/QFramework
  *       Copyright (c) 2015 ~ 2023 liangxiegame，以 MIT License 发布
  *
- * 移植  TypeScript / LayaAir 适配版（本仓库）
- *       核心架构与 C# 版保持一致，并针对 LayaAir 做了如下适配：
- *         1. Architecture / Command / Query / System / Model / Utility 核心架构与 C# 版保持一致
- *         2. Controller 以 Laya.Script 组件的形式存在（AbstractController）
- *         3. 事件注销可挂载到 Laya 节点的生命周期上（unRegisterWhenNodeDestroyed）
- *         4. BindableProperty 自动为 Laya 常用值类型（Vector2/3/4、Color 等）注册比较器
- *
- * LayaAir 的 d.ts 是全局声明（declare class Laya / declare namespace Laya），
- * 因此编译期直接使用全局类型，运行时通过 globalThis.Laya 延迟获取，
- * 这样在没有 Laya 的环境下（例如单元测试）也能安全 import。
+ * Laya、Unity 等引擎适配位于各自的 workspace 包中。
  *
  * 完整的许可条款见仓库根目录的 LICENSE 文件。
  ****************************************************************************/
@@ -74,58 +65,6 @@ export type EventKey<T> = Type<T> | PrimitiveConstructor<T> | string | symbol;
 
 /** 比较器，用于 BindableProperty 判断值是否发生变化 */
 export type Comparer<T> = (a: T, b: T) => boolean;
-
-// #endregion
-
-// #region Laya 运行时
-
-/** Laya 全局对象（class Laya 与 namespace Laya 合并后的类型） */
-export type LayaNamespace = typeof Laya;
-
-/**
- * 获取 Laya 全局对象，未引入 LayaAir 时返回 null。
- * 采用延迟获取的方式，保证非 Laya 环境（如单元测试）也能正常加载本模块。
- */
-export function getLaya(): LayaNamespace | null {
-  const g = globalThis as unknown as { Laya?: LayaNamespace };
-  return g.Laya ?? null;
-}
-
-/** 获取 Laya 全局对象，未引入 LayaAir 时抛出异常 */
-export function requireLaya(): LayaNamespace {
-  const laya = getLaya();
-  if (!laya) {
-    throw new Error('[QFramework] 未找到 Laya 全局对象，请确认已经引入 LayaAir。');
-  }
-  return laya;
-}
-
-let layaScriptBase: Type<Laya.Script> | null = null;
-
-/**
- * 手动注入 Laya 全局对象。
- *
- * 使用 LayaAir 全局包时（本框架对应的场景），Laya 会在业务代码之前完成初始化，无需调用本方法。
- * 若 Laya 是异步加载的，请在 **import 本模块之前** 调用，
- * 否则 AbstractController 已经完成了类定义，无法再动态改变其基类。
- */
-export function installLaya(laya: LayaNamespace): void {
-  (globalThis as unknown as { Laya?: LayaNamespace }).Laya = laya;
-  layaScriptBase = null;
-  unRegisterTriggerType = null;
-  comparerAutoRegistered = false;
-}
-
-/**
- * Laya.Script 基类。
- * 延迟解析，使得在没有 Laya 的环境下也能完成类的定义（此时退化为一个空基类）。
- */
-export function LayaScriptBase(): Type<Laya.Script> {
-  if (layaScriptBase) return layaScriptBase;
-  const laya = getLaya();
-  layaScriptBase = (laya?.Script ?? (class {} as unknown as Type<Laya.Script>)) as Type<Laya.Script>;
-  return layaScriptBase;
-}
 
 // #endregion
 
@@ -528,7 +467,7 @@ export interface IBindableProperty<T> extends IReadonlyBindableProperty<T> {
 /**
  * 默认比较器：
  * 1. 引用相等
- * 2. 类型上提供了 static equals（Laya 的 Vector2/3/4、Matrix 等）则使用它
+ * 2. 类型上提供了 static equals 则使用它
  * 3. 实例上提供了 equals 则使用它
  */
 function defaultComparer<T>(a: T, b: T): boolean {
@@ -548,15 +487,6 @@ function defaultComparer<T>(a: T, b: T): boolean {
   return false;
 }
 
-function fieldsComparer<T>(fields: readonly string[]): Comparer<T> {
-  return (a: T, b: T) => {
-    for (const field of fields) {
-      if ((a as any)?.[field] !== (b as any)?.[field]) return false;
-    }
-    return true;
-  };
-}
-
 let comparerAutoRegistered = false;
 
 /**
@@ -574,48 +504,6 @@ export function registerBuiltInComparers(): void {
     for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
     return true;
   });
-
-  const laya = getLaya();
-  if (!laya) return;
-
-  const {
-    Vector2,
-    Vector3,
-    Vector4,
-    Matrix,
-    Matrix4x4,
-    Color,
-    Quaternion,
-    Rectangle,
-    Bounds,
-  } = laya as unknown as Record<string, any>;
-
-  if (Vector2) BindableProperty.setDefaultComparer(Vector2, Vector2.equals);
-  if (Vector3) BindableProperty.setDefaultComparer(Vector3, Vector3.equals);
-  if (Vector4) BindableProperty.setDefaultComparer(Vector4, Vector4.equals);
-  if (Matrix) BindableProperty.setDefaultComparer(Matrix, Matrix.equals);
-  if (Color) BindableProperty.setDefaultComparer(Color, fieldsComparer<Laya.Color>(['r', 'g', 'b', 'a']));
-  if (Quaternion)
-    BindableProperty.setDefaultComparer(Quaternion, fieldsComparer<Laya.Quaternion>(['x', 'y', 'z', 'w']));
-  if (Rectangle)
-    BindableProperty.setDefaultComparer(Rectangle, fieldsComparer<Laya.Rectangle>(['x', 'y', 'width', 'height']));
-  if (Bounds)
-    BindableProperty.setDefaultComparer<Laya.Bounds>(Bounds, (a, b) => {
-      const equals = Vector3 ? Vector3.equals : defaultComparer;
-      return (
-        !!equals(a?.getMin?.() ?? a?.min, b?.getMin?.() ?? b?.min) &&
-        !!equals(a?.getMax?.() ?? a?.max, b?.getMax?.() ?? b?.max)
-      );
-    });
-  if (Matrix4x4)
-    BindableProperty.setDefaultComparer<Laya.Matrix4x4>(Matrix4x4, (a, b) => {
-      const ea = (a as any)?.elements;
-      const eb = (b as any)?.elements;
-      if (a === b) return true;
-      if (!ea || !eb || ea.length !== eb.length) return false;
-      for (let i = 0; i < ea.length; i++) if (ea[i] !== eb[i]) return false;
-      return true;
-    });
 }
 
 function autoRegisterComparers(): void {
@@ -828,7 +716,7 @@ export class ArchitectureCapabilities {
 }
 
 /** 架构持有者：统一处理“尚未注册到架构”的异常提示 */
-class ArchitectureHolder implements IBelongToArchitecture, ICanSetArchitecture {
+export class ArchitectureHolder implements IBelongToArchitecture, ICanSetArchitecture {
   private mArchitecture: IArchitecture | null = null;
   private readonly mOwner: string;
 
@@ -1367,9 +1255,9 @@ export interface IUtility {
 
 // #endregion
 
-// #region Controller
+// #region Controller contract
 
-/** Controller：架构的入口，Laya 中一般以脚本组件的形式存在 */
+/** Controller：架构的入口；具体引擎的 Controller 基类由适配层提供 */
 export interface IController
   extends IBelongToArchitecture,
     ICanSendCommand,
@@ -1378,165 +1266,6 @@ export interface IController
     ICanRegisterEvent,
     ICanSendQuery,
     ICanGetUtility {}
-
-/**
- * Laya 版的 Controller 基类。
- *
- * 继承 Laya.Script，因此可以直接挂到 Laya 的节点上，
- * 并拥有 onAwake / onEnable / onStart / onUpdate / onDestroy 等生命周期。
- *
- * ```ts
- * class GameCtrl extends AbstractController {
- *   private readonly mCount = new BindableProperty<number>(0);
- *
- *   protected onInit(): void {
- *     // 已挂到节点、架构已就绪
- *     this.registerEvent(GameStartEvent, (e) => this.mCount.value++);
- *   }
- *
- *   protected onDestroy(): void {
- *     super.onDestroy();
- *   }
- * }
- * ```
- */
-export abstract class AbstractController extends LayaScriptBase() implements IController {
-  private readonly mHolder = new ArchitectureHolder(this);
-  private readonly mCap = new ArchitectureCapabilities(this.mHolder);
-  private mArchitecture: IArchitecture | null = null;
-
-  /** 所属的 Laya 节点（等价于 Laya.Component.owner） */
-  get node(): Laya.Node {
-    return (this as unknown as Laya.Script).owner;
-  }
-
-  getArchitecture(): IArchitecture {
-    if (!this.mArchitecture) {
-      throw new Error(
-        '[QFramework] AbstractController 尚未绑定架构，请重写 getArchitectureClass() 或在 onAwake 前调用 setArchitecture()。',
-      );
-    }
-    return this.mArchitecture;
-  }
-
-  setArchitecture(architecture: IArchitecture): void {
-    this.mArchitecture = architecture;
-    this.mHolder.setArchitecture(architecture);
-  }
-
-  /**
-   * 绑定架构的构造函数，重写后会在 onAwake 阶段自动完成架构绑定与初始化。
-   * ```ts
-   * protected getArchitectureClass(): AbstractType<CounterApp> { return CounterApp; }
-   * ```
-   */
-  protected getArchitectureClass(): AbstractType<Architecture<any>> | null {
-    return null;
-  }
-
-  getSystem<TSystem extends ISystem>(key: TypeToken<TSystem>): TSystem | null {
-    return this.mCap.getSystem<TSystem>(key);
-  }
-
-  getModel<TModel extends IModel>(key: TypeToken<TModel>): TModel | null {
-    return this.mCap.getModel<TModel>(key);
-  }
-
-  getUtility<TUtility extends IUtility>(key: TypeToken<TUtility>): TUtility | null {
-    return this.mCap.getUtility<TUtility>(key);
-  }
-
-  sendCommand<TResult = void>(command: ICommand<TResult>): TResult {
-    return this.mCap.sendCommand<TResult>(command);
-  }
-
-  sendQuery<TResult>(query: IQuery<TResult>): TResult {
-    return this.mCap.sendQuery<TResult>(query);
-  }
-
-  registerEvent<T>(key: EventKey<T>, onEvent: Action1<T>): IUnRegister {
-    return this.mCap.registerEvent<T>(key, onEvent);
-  }
-
-  unRegisterEvent<T>(key: EventKey<T>, onEvent: Action1<T>): void {
-    this.mCap.unRegisterEvent<T>(key, onEvent);
-  }
-
-  onAwake(): void {
-    const architectureClass = this.getArchitectureClass();
-    if (architectureClass && !this.mArchitecture) {
-      this.setArchitecture(resolveArchitecture(architectureClass));
-    }
-    this.onInit();
-  }
-
-  /** 架构就绪后调用，子类在此注册事件、初始化数据 */
-  protected onInit(): void {
-    // 子类按需重写
-  }
-}
-
-// #endregion
-
-// #region Laya 适配：节点销毁时自动注销
-
-/** 挂在节点上的注销触发器组件 */
-export interface IUnRegisterTrigger {
-  addUnRegister(unRegister: IUnRegister): void;
-  removeUnRegister(unRegister: IUnRegister): void;
-}
-
-let unRegisterTriggerType: Type<IUnRegisterTrigger & Laya.Component> | null = null;
-
-/** 获取（第一次调用时创建）注销触发器组件类型 */
-export function getUnRegisterOnDestroyTriggerType(): Type<IUnRegisterTrigger & Laya.Component> {
-  if (unRegisterTriggerType) return unRegisterTriggerType;
-
-  const Base = LayaScriptBase();
-
-  class UnRegisterOnDestroyTrigger extends Base implements IUnRegisterTrigger {
-    private readonly mUnRegisters = new Set<IUnRegister>();
-
-    addUnRegister(unRegister: IUnRegister): void {
-      this.mUnRegisters.add(unRegister);
-    }
-
-    removeUnRegister(unRegister: IUnRegister): void {
-      this.mUnRegisters.delete(unRegister);
-    }
-
-    onDestroy(): void {
-      for (const unRegister of Array.from(this.mUnRegisters)) unRegister.unRegister();
-      this.mUnRegisters.clear();
-    }
-  }
-
-  unRegisterTriggerType = UnRegisterOnDestroyTrigger as unknown as Type<IUnRegisterTrigger & Laya.Component>;
-  return unRegisterTriggerType;
-}
-
-/**
- * 节点销毁时自动注销（对应 C# 的 UnRegisterWhenGameObjectDestroyed）。
- * 会在节点上挂一个触发器组件（同一个节点只会挂一次）。
- */
-export function unRegisterWhenNodeDestroyed(unRegister: IUnRegister, node: Laya.Node): IUnRegister {
-  requireLaya();
-  const triggerType = getUnRegisterOnDestroyTriggerType();
-  let trigger = node.getComponent(triggerType) as (IUnRegisterTrigger & Laya.Component) | null;
-  if (!trigger) trigger = node.addComponent(triggerType);
-  trigger.addUnRegister(unRegister);
-  return unRegister;
-}
-
-/** 组件所属节点销毁时自动注销 */
-export function unRegisterWhenComponentDestroyed(
-  unRegister: IUnRegister,
-  component: Laya.Component,
-): IUnRegister {
-  return unRegisterWhenNodeDestroyed(unRegister, component.owner);
-}
-
-// #endregion
 
 // #region Event Extension
 

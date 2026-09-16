@@ -7,9 +7,14 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@qframework/core": ["packages/core/src/index.ts"]
+    },
     "useDefineForClassFields": true,
     "allowImportingTsExtensions": true,
-    "rootDir": "src"
+    "rootDir": "."
   },
-  "include": ["src", "types/LayaAir.d.ts"]
+  "include": ["packages/core/src", "packages/laya/src", "packages/fairygui-babylon/src", "types/LayaAir.d.ts"]
 }
