@@ -2,10 +2,7 @@
  * LayaAir 的最小化测试桩。
  *
  * 重要：本文件 **不能** import '../packages/laya/src/index'。
- *   原因：`AbstractController` 在 `packages/laya/src/index` 模块求值时就会解析 `Laya.Script` 作为基类，
- *   一旦那时 `globalThis.Laya` 还没就绪，它就会退化成空基类，后续再也改不回来。
- *   因此本文件必须作为 rstest 的 `setupFiles` 在测试模块加载 **之前** 执行，
- *   并且只做一件事：把 Laya 挂到 globalThis。
+ * `qframework-laya` 默认全局 Laya 必定存在，因此本桩必须作为 setupFiles 在测试模块加载前注入。
  *
  * 这里只模拟 QFramework 实际用到的 Laya API（签名对齐 types/LayaAir.d.ts）：
  *   - Laya.Component / Laya.Script：生命周期 + owner
@@ -178,6 +175,83 @@ export class StubBounds {
 
 // #endregion
 
+// #region 音频
+
+export class StubSoundChannel {
+  volume = 1;
+  playbackRate = 1;
+  paused = false;
+  isStopped = false;
+
+  constructor(
+    readonly url: string,
+    public loops: number,
+    private readonly complete?: () => void,
+  ) {}
+
+  play(): void {
+    this.paused = false;
+    this.isStopped = false;
+  }
+
+  pause(): void {
+    this.paused = true;
+  }
+
+  resume(): void {
+    this.paused = false;
+  }
+
+  stop(): void {
+    this.isStopped = true;
+    this.paused = false;
+  }
+
+  finish(): void {
+    if (this.isStopped) return;
+    this.isStopped = true;
+    this.complete?.();
+  }
+}
+
+export const stubSoundManager = {
+  channels: [] as StubSoundChannel[],
+  playMusic(url: string, loops = 1, complete?: () => void): StubSoundChannel {
+    const channel = new StubSoundChannel(url, loops, complete);
+    this.channels.push(channel);
+    return channel;
+  },
+  playSound(url: string, loops = 1, complete?: () => void): StubSoundChannel {
+    const channel = new StubSoundChannel(url, loops, complete);
+    this.channels.push(channel);
+    return channel;
+  },
+  reset(): void {
+    this.channels.length = 0;
+  },
+};
+
+const storage = new Map<string, string>();
+
+export const stubLocalStorage = {
+  setItem(key: string, value: string): void {
+    storage.set(key, value);
+  },
+  getItem(key: string): string | null {
+    return storage.get(key) ?? null;
+  },
+  removeItem(key: string): void {
+    storage.delete(key);
+  },
+  clear(): void {
+    storage.clear();
+  },
+};
+
+export const stubTimer = { currFrame: 0 };
+
+// #endregion
+
 /** 注入到 globalThis 的 Laya 桩对象 */
 export const stubLaya = {
   Script: StubScript,
@@ -192,6 +266,9 @@ export const stubLaya = {
   Quaternion: StubQuaternion,
   Rectangle: StubRectangle,
   Bounds: StubBounds,
+  SoundManager: stubSoundManager,
+  LocalStorage: stubLocalStorage,
+  timer: stubTimer,
 };
 
 // 必须在任何 src 代码求值之前完成

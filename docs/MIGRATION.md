@@ -365,22 +365,21 @@ class CyclicApp extends Architecture<CyclicApp> {
 
 ### 1. Laya 必须在 `import` 本库之前就绪
 
-`AbstractController` 在模块求值时就会执行 `extends LayaScriptBase()`：
+`AbstractController` 在模块求值时直接继承 `Laya.Script`：
 
 ```ts
-export abstract class AbstractController extends LayaScriptBase() implements IController {}
+export abstract class AbstractController extends Laya.Script implements IController {}
 ```
 
-一旦那时 `globalThis.Laya` 不存在，基类就会退化成空类，**且无法补救**。
+因此导入 `qframework-laya` 时，全局 `Laya` 必须已经存在。
 
 ```ts
 // ✅ 正确
 import { Laya } from 'LayaAir';   // 先引入 Laya
 import { AbstractController } from 'qframework-laya';
 
-// ✅ 异步加载 Laya 时
-import { installLaya } from 'qframework-laya';
-installLaya(layaInstance);              // 必须在 import 业务模块之前
+// ✅ 异步加载 Laya 时，等运行时就绪后再加载业务模块
+await loadLaya();
 await import('./MyController');
 ```
 
@@ -389,9 +388,8 @@ await import('./MyController');
 `tests/laya-stub.ts` 作为 `setupFiles` 运行，**且不能 import `packages/laya/src/index`**：
 
 ```ts
-// ❌ 错误：import 会先求值 Laya 适配层，此时 Laya 还没注入
-import { installLaya } from '../packages/laya/src/index';
-installLaya(stubLaya);
+// ❌ 错误：此时全局 Laya 还不存在
+import '../packages/laya/src/index';
 
 // ✅ 正确：先设置全局，再让测试文件去 import Laya 适配层
 (globalThis as unknown as { Laya: unknown }).Laya = stubLaya;

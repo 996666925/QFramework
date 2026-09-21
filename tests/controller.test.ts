@@ -1,6 +1,5 @@
 /**
  * LayaAir 适配层测试：
- *   - getLaya / requireLaya / installLaya
  *   - AbstractController（继承 Laya.Script）
  *   - unRegisterWhenNodeDestroyed / unRegisterWhenComponentDestroyed
  *   - 注销触发器组件 UnRegisterOnDestroyTrigger
@@ -17,16 +16,13 @@ import {
   CustomUnRegister,
   EasyEvent,
   TypeEventSystem,
-  getLaya,
   getUnRegisterOnDestroyTriggerType,
-  installLaya,
   registerGlobalEvent,
-  requireLaya,
   unRegisterWhenComponentDestroyed,
   unRegisterWhenNodeDestroyed,
 } from '../packages/laya/src/index';
-import type { AbstractType, LayaNamespace } from '../packages/laya/src/index';
-import { StubNode, StubScript, StubVector3, stubLaya } from './laya-stub';
+import type { AbstractType } from '../packages/laya/src/index';
+import { StubNode, StubScript } from './laya-stub';
 
 // #region 演示模块
 
@@ -65,40 +61,6 @@ class GameApp extends Architecture<GameApp> {
     this.registerModel(new HpModel());
   }
 }
-
-// #endregion
-
-// #region Laya 运行时
-
-describe('Laya 运行时', () => {
-  test('01 - getLaya 返回注入的全局对象', () => {
-    expect(getLaya()).not.toBeNull();
-    expect(getLaya()).toBe(stubLaya as unknown as LayaNamespace);
-  });
-
-  test('02 - requireLaya 与 getLaya 返回同一个对象', () => {
-    expect(requireLaya()).toBe(getLaya());
-  });
-
-  test('03 - Laya.Script / Laya.Node / 值类型均可访问', () => {
-    const laya = getLaya()!;
-    expect(laya.Script).toBe(StubScript);
-    expect(laya.Node).toBe(StubNode);
-    expect((laya as unknown as { Vector3: unknown }).Vector3).toBe(StubVector3);
-  });
-
-  test('04 - installLaya 可以重新注入并重置缓存', () => {
-    const original = getLaya();
-    try {
-      const marker = { Script: StubScript, Node: StubNode } as unknown as LayaNamespace;
-      installLaya(marker);
-      expect(getLaya()).toBe(marker);
-    } finally {
-      installLaya(original as LayaNamespace);
-    }
-    expect(getLaya()).toBe(original);
-  });
-});
 
 // #endregion
 

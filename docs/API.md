@@ -21,6 +21,7 @@ import type { Type, EventKey, IArchitecture } from '@qframework/core';
 
 - [基础类型](#基础类型)
 - [Laya 运行时](#laya-运行时)
+- [AudioKit（Laya）](#audiokitlaya)
 - [IOCContainer](#ioccontainer)
 - [注销机制](#注销机制)
 - [EasyEvent 家族](#easyevent-家族)
@@ -84,26 +85,117 @@ system.register<number>(Number, onEvent);       // 基本类型（对应 send(42
 
 ## Laya 运行时
 
-所属包：`qframework-laya`。
+所属包：`qframework-laya`。本包直接依赖全局 `Laya`，不提供运行时获取或注入 API。
+必须先加载 LayaAir，再导入本包：
 
 ```ts
-/** Laya 全局对象（class Laya 与 namespace Laya 合并后的类型） */
-type LayaNamespace = typeof Laya;
+import { Laya } from 'LayaAir';
+import { AbstractController, AudioKit } from 'qframework-laya';
+```
 
-/** 获取 Laya 全局对象，未引入 LayaAir 时返回 null */
-function getLaya(): LayaNamespace | null;
+---
 
-/** 获取 Laya 全局对象，未引入 LayaAir 时抛出异常 */
-function requireLaya(): LayaNamespace;
+## AudioKit（Laya）
 
-/**
- * 手动注入 Laya 全局对象。
- * 必须在 import 本库 **之前** 调用，否则 AbstractController 已完成类定义，无法改变基类。
- */
-function installLaya(laya: LayaNamespace): void;
+所属包：`qframework-laya`。使用 `Laya.SoundManager` 播放音乐、人声和音效。
+LayaAir 没有 Unity `AudioClip` 的对应输入，相关参数统一使用资源 URL 字符串。
 
-/** Laya.Script 基类（延迟解析，无 Laya 时退化为空基类） */
-function LayaScriptBase(): Type<Laya.Script>;
+```ts
+enum PlaySoundModes {
+  EveryOne,
+  IgnoreSameSoundInGlobalFrames,
+  IgnoreSameSoundInSoundFrames,
+}
+
+interface PlayAudioOptions {
+  loop?: boolean;
+  onStart?: () => void;
+  onFinish?: () => void;
+  volume?: number;
+}
+
+interface PlaySoundOptions {
+  loop?: boolean;
+  onFinish?: (player: AudioPlayer) => void;
+  volume?: number;
+  pitch?: number;
+  mode?: PlaySoundModes;
+}
+
+class AudioKit {
+  static readonly settings: AudioKitSettingsModel;
+  static readonly config: AudioLoaderPoolModel;
+  static readonly musicPlayer: MusicPlayer;
+  static readonly voicePlayer: MusicPlayer;
+
+  static playSoundMode: PlaySoundModes;
+  static soundFrameCountForIgnoreSameSound: number;
+  static globalFrameCountForIgnoreSameSound: number;
+
+  static playMusic(musicName: string, options?: PlayAudioOptions): void;
+  static playMusicUrl(url: string, options?: PlayAudioOptions): void;
+  static stopMusic(): void;
+  static pauseMusic(): void;
+  static resumeMusic(): void;
+
+  static playVoice(voiceName: string, options?: PlayAudioOptions): void;
+  static playVoiceUrl(url: string, options?: PlayAudioOptions): void;
+  static stopVoice(): void;
+  static pauseVoice(): void;
+  static resumeVoice(): void;
+
+  static playSound(
+    soundName: string,
+    options?: PlaySoundOptions,
+  ): AudioPlayer;
+  static playSoundUrl(
+    url: string,
+    options?: PlaySoundOptions,
+  ): AudioPlayer;
+  static stopAllSound(): void;
+
+  static music(): FluentMusicAPI;
+  static sound(): FluentSoundAPI;
+  static dispose(): void;
+}
+```
+
+`AudioKit.settings` 提供 `isSoundOn`、`isMusicOn`、`isVoiceOn`、`isOn` 和三类
+`soundVolume` / `musicVolume` / `voiceVolume` 绑定属性。值通过 `Laya.LocalStorage`
+持久化，修改音量会立即更新正在播放的对应声道。
+
+```ts
+AudioKit.playMusic('audio/bgm.mp3');
+AudioKit.playSound('audio/hit.wav', { volume: 0.8, pitch: 1.2 });
+AudioKit.playSoundUrl(cdnUrl); // 直接 URL，不经过 IAudioLoader
+
+AudioKit.settings.musicVolume.value = 0.6;
+AudioKit.settings.isSoundOn.value = false;
+
+AudioKit.sound()
+  .withName('audio/click.wav')
+  .playSoundMode(PlaySoundModes.IgnoreSameSoundInSoundFrames)
+  .play();
+```
+
+逻辑名称需要映射到真实 URL 时，实现 `IAudioLoader` / `IAudioLoaderPool`，并赋给
+`AudioKit.config.audioLoaderPool`。加载器契约提供 `clip`、`loadClip()`、`loadClipAsync()`
+和 `unload()`；其中 Laya 版的 clip 是 URL 字符串。默认加载器直接把名称作为 URL。
+
+`playMusic` / `playVoice` / `playSound` 与 Fluent API 的 `withName()` 会经过加载器；
+`playMusicUrl` / `playVoiceUrl` / `playSoundUrl` 与 `withAudioClip()` 直接使用 URL。
+
+### PlaySoundAction
+
+`PlaySoundAction` 可独立执行，也可添加到任何实现 `IAudioSequence`（即提供
+`append(action)`）的顺序动作容器：
+
+```ts
+const action = PlaySoundAction.allocate('audio/click.wav');
+action.execute(0);
+
+playSound(sequence, 'audio/click.wav');
+playSoundUrl(sequence, cdnUrl);
 ```
 
 ---

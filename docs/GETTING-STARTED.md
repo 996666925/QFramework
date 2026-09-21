@@ -766,7 +766,7 @@ import { Laya } from 'LayaAir';   // 先
 import { AbstractController } from 'qframework-laya';   // 后
 ```
 
-> 如果 Laya 是异步加载的，需要在 import 业务代码前调用 `installLaya(laya)`。
+> 如果 Laya 是异步加载的，需要等待 Laya 就绪后再动态导入业务代码。
 > 详见 [MIGRATION.md 踩坑点 1](MIGRATION.md#1-laya-必须在-import-本库之前就绪)。
 
 ### 6.2 第一个 Controller
@@ -1201,10 +1201,10 @@ App.Interface.sendCommand(new IncreaseCountCommand());
 ### 8.4 `Controller` 继承后拿不到 Laya 的方法
 
 ```
-原因：Laya 在本库加载之后才就绪，AbstractController 退化成了空基类。
+原因：导入本库时全局 `Laya` 尚未就绪。
 ```
 
-解决：确保 `import 'LayaAir'` 在 `import 'qframework-laya'` 之前；异步加载时用 `installLaya()`。
+解决：确保 `import 'LayaAir'` 在 `import 'qframework-laya'` 之前；异步加载时等待 Laya 就绪后再动态导入业务模块。
 
 ### 8.5 事件注销不掉
 
@@ -1431,8 +1431,7 @@ registerGlobalEvent(obj, Evt)
 unRegisterGlobalEvent(obj, Evt)
 TypeEventSystem.Global.send(new Evt())
 
-// Laya
-getLaya() / requireLaya() / installLaya(laya)
+// Laya：导入 qframework-laya 前确保全局 Laya 已存在
 ```
 
 ### 各层能力矩阵

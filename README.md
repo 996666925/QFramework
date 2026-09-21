@@ -37,7 +37,7 @@ QFramework v1.0 的 **TypeScript 核心与多引擎适配层**，由 [QFramework
 
 | 包 | 内容 | 运行时依赖 |
 |---|---|---|
-| `qframework-laya` | LayaAir 适配层（`AbstractController`、`unRegisterWhenNodeDestroyed`……）+ **全部核心 API** | `@qframework/core` |
+| `qframework-laya` | LayaAir 适配层（`AbstractController`、`AudioKit`、生命周期注销）+ **全部核心 API** | `@qframework/core` |
 | `qframework-fairygui-babylon` | FairyGUI-Babylon 适配层 + **全部核心 API** | `@qframework/core` |
 | `@qframework/core` | 与引擎无关的核心实现（`Architecture` / `Command` / `Query` / `Model` / `System` / `Utility` / `BindableProperty`……） | 无 |
 
@@ -189,19 +189,15 @@ class HudController extends AbstractController {
 
 ### 关于 Laya 全局对象
 
-LayaAir 的 `LayaAir.d.ts` 是**全局声明**（`declare class Laya` / `declare namespace Laya`）。本框架：
-
-- **编译期**直接使用全局类型（`Laya.Script`、`Laya.Node`、`Laya.Vector3` …）
-- **运行期**通过 `globalThis.Laya` 延迟获取，因此在没有 Laya 的环境（如 Node 单元测试）也能安全 `import`
+LayaAir 的 `LayaAir.d.ts` 是**全局声明**（`declare class Laya` / `declare namespace Laya`）。
+`qframework-laya` 在编译期和运行期都直接使用全局 `Laya`，加载本包前必须确保它已经存在：
 
 ```ts
-getLaya();      // => Laya | null
-requireLaya();  // => Laya，缺失时抛异常
-installLaya(laya); // 异步加载 Laya 时手动注入（必须在 import 本库之前调用）
+import { Laya } from 'LayaAir';
+import { AbstractController } from 'qframework-laya';
 ```
 
-> ⚠️ `AbstractController` 在**模块求值时**就会解析 `Laya.Script` 作为基类。
-> 若 Laya 是异步加载的，务必在 `import 'qframework-laya'` **之前**完成注入，否则它会退化成空基类且无法补救。
+异步加载 Laya 时，等待运行时就绪后再动态 `import()` 业务模块。
 
 ---
 
@@ -314,7 +310,9 @@ unRegisterWhenNodeDestroyed(unRegister, this.node);
 | `ArchitectureCapabilities` | core | 把架构能力挂到任意对象上 |
 | `AbstractController` | laya | Laya 脚本版 Controller，架构入口 |
 | `unRegisterWhenNodeDestroyed` / `unRegisterWhenComponentDestroyed` | laya | 绑定 Laya 节点 / 组件销毁自动注销 |
-| `getLaya` / `requireLaya` / `installLaya` | laya | Laya 全局对象访问 |
+| `AudioKit` / `AudioPlayer` / `MusicPlayer` | laya | 音乐、人声、音效播放及声道控制 |
+| `IAudioLoader` / `IAudioLoaderPool` | laya | 逻辑音频名称到 Laya 资源 URL 的映射扩展点 |
+| `PlaySoundAction` | laya | 可独立执行或追加到 Sequence 的音效动作 |
 | `AbstractFairyGUIController<TView>` | fairygui-babylon | FairyGUI 视图版 Controller，架构入口 |
 | `unRegisterWhenFairyGUIDisposed` / `unRegisterWhenFairyGUIUndisplayed` | fairygui-babylon | 绑定 `dispose()` / `fui_undisplay` 自动注销 |
 | `installFairyGUIBabylon` | fairygui-babylon | FairyGUI 运行时注入（读取 `EventType.UNDISPLAY`） |
@@ -358,7 +356,7 @@ pnpm run test:watch
 
 ## 测试
 
-测试使用 [Rstest](https://rstest.rs/)，共 **256** 个用例，覆盖 11 个文件：
+测试使用 [Rstest](https://rstest.rs/)，共 **263** 个用例，覆盖 12 个文件：
 
 | 文件 | 用例数 | 覆盖内容 |
 |---|---|---|
@@ -366,9 +364,10 @@ pnpm run test:watch
 | `tests/easy-event.test.ts` | 29 | `EasyEvent` / `EasyEvent1/2/3` / `EasyEvents`、重入触发 |
 | `tests/type-event-system.test.ts` | 23 | `TypeEventSystem`、全局事件、`IOnEvent` |
 | `tests/bindable-property.test.ts` | 38 | `BindableProperty`、比较器、Laya 值类型适配 |
+| `tests/audio-kit.test.ts` | 11 | AudioKit 播放、生命周期、直接 URL、对象池、动作与自定义加载器 |
 | `tests/architecture.test.ts` | 49 | `Architecture`、Command/Query/Model/System/Utility、分层约束 |
 | `tests/architecture-robustness.test.ts` | 8 | 初始化期动态注册、初始化失败、循环构造 / 循环依赖 |
-| `tests/controller.test.ts` | 32 | `AbstractController`、节点销毁自动注销、Laya 运行时 |
+| `tests/controller.test.ts` | 28 | `AbstractController`、节点销毁自动注销 |
 | `tests/or-event.test.ts` | 12 | `OrEvent` |
 | `tests/integration.test.ts` | 12 | 端到端「商店购买」场景 |
 | `tests/docs-examples.test.ts` | 34 | **校验 `GETTING-STARTED.md` 里的示例代码真的能跑** |
@@ -379,11 +378,10 @@ pnpm run test:watch
 
 ### 测试中的 Laya 桩
 
-`tests/laya-stub.ts` 提供了 Laya 的最小化桩（`Script` / `Node` / 各值类型），
+`tests/laya-stub.ts` 提供了 Laya 的最小化桩（`Script` / `Node` / `SoundManager` / 各值类型），
 并通过 `rstest.config.ts` 的 `setupFiles` 在**测试模块加载之前**注入 `globalThis.Laya`。
 
-> 该文件**不能** import `packages/laya/src/index` —— 否则 `packages/laya/src/index` 会先于 Laya 注入求值，
-> `AbstractController` 会退化成空基类。
+> 该文件**不能** import `packages/laya/src/index`，因为 `qframework-laya` 求值时要求全局 `Laya` 已经存在。
 
 ---
 
