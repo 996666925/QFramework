@@ -19,9 +19,9 @@ import {
   IUnRegister,
   Type,
   TypeToken,
-} from '@qframework/core';
+} from 'qframework-core';
 
-export * from '@qframework/core';
+export * from 'qframework-core';
 export * from './audio-kit';
 
 function fieldsComparer<T>(fields: readonly string[]): Comparer<T> {

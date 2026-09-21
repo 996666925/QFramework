@@ -10,7 +10,7 @@
     "baseUrl": ".",
     "ignoreDeprecations": "6.0",
     "paths": {
-      "@qframework/core": ["packages/core/src/index.ts"]
+      "qframework-core": ["packages/core/src/index.ts"]
     },
     "useDefineForClassFields": true,
     "allowImportingTsExtensions": true,

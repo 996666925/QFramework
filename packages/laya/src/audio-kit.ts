@@ -8,7 +8,7 @@ import {
   BindableProperty,
   EasyEvent1,
   IUnRegister,
-} from '@qframework/core';
+} from 'qframework-core';
 
 type AudioKind = 'music' | 'voice' | 'sound';
 

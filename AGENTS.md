@@ -4,9 +4,9 @@ You are an expert in JavaScript, Rspack, Rsbuild, Rslib, and library development
 
 ## Repository layout
 
-This is a **pnpm workspace monorepo**. Engine-agnostic code lives in `core`; each engine gets its own adapter package which re-exports all of `@qframework/core`.
+This is a **pnpm workspace monorepo**. Engine-agnostic code lives in `core`; each engine gets its own adapter package which re-exports all of `qframework-core`.
 
-- `packages/core` (`@qframework/core`) — engine-agnostic core, no engine dependency
+- `packages/core` (`qframework-core`) — engine-agnostic core, no engine dependency
 - `packages/laya` (`qframework-laya`) — LayaAir adapter
 - `packages/fairygui-babylon` (`qframework-fairygui-babylon`) — FairyGUI on Babylon.js adapter
 - `tests/` — Rstest suites; `tests/laya-stub.ts` injects a minimal global `Laya` before test modules load
@@ -14,7 +14,7 @@ This is a **pnpm workspace monorepo**. Engine-agnostic code lives in `core`; eac
 
 Docs conventions:
 
-- All code samples import from the engine package (`qframework-laya` / `qframework-fairygui-babylon`), because both re-export `@qframework/core`. `@qframework/core` is only used when no engine is involved.
+- All code samples import from the engine package (`qframework-laya` / `qframework-fairygui-babylon`), because both re-export `qframework-core`. `qframework-core` is only used when no engine is involved.
 - `tests/docs-examples.test.ts` verifies that the samples in `docs/GETTING-STARTED.md` actually run. Update it whenever those samples change.
 
 ## Commands

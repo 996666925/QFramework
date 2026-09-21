@@ -9,7 +9,9 @@
     "dev": "pnpm --recursive --parallel run dev",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
     "test": "rstest",
-    "test:watch": "rstest --watch"
+    "test:watch": "rstest --watch",
+    "release": "pnpm -r publish --access public",
+    "release:local": "pnpm -r publish --access public --no-git-checks"
   },
   "devDependencies": {
     "@rslib/core": "^0.23.2",

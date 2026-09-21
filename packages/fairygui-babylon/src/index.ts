@@ -17,9 +17,9 @@ import {
   IUnRegister,
   IUtility,
   TypeToken,
-} from '@qframework/core';
+} from 'qframework-core';
 
-export * from '@qframework/core';
+export * from 'qframework-core';
 
 /** 最小的 FairyGUI 对象契约，避免适配层的声明依赖污染 core。 */
 export interface FairyGUIObjectLike {

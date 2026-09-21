@@ -1,6 +1,6 @@
 # qframework-laya
 
-[QFramework.ts](https://github.com/996666925/QFramework) 的 **LayaAir 适配层**：把 `@qframework/core` 的 MVC 分层架构接到 Laya 节点与生命周期上。
+[QFramework.ts](https://github.com/996666925/QFramework) 的 **LayaAir 适配层**：把 `qframework-core` 的 MVC 分层架构接到 Laya 节点与生命周期上。
 
 > 完整文档：[项目总览](https://github.com/996666925/QFramework#readme) ·
 > [入门指南](https://github.com/996666925/QFramework/blob/main/docs/GETTING-STARTED.md) ·
@@ -14,7 +14,7 @@ pnpm add qframework-laya
 # 或 npm install qframework-laya
 ```
 
-本包已执行 `export * from '@qframework/core'`，**核心 API（`Architecture` / `Command` / `Query` / `Model` / `System` / `Utility` / `BindableProperty` 等）可以直接从这里导入**，不需要再单独安装 `@qframework/core`。
+本包已执行 `export * from 'qframework-core'`，**核心 API（`Architecture` / `Command` / `Query` / `Model` / `System` / `Utility` / `BindableProperty` 等）可以直接从这里导入**，不需要再单独安装 `qframework-core`。
 
 ## 快速开始
 
@@ -84,7 +84,7 @@ await import('./MyController');
 | `AudioPlayer` / `MusicPlayer` | 可暂停、恢复、停止并监听开始/结束的播放控制器 |
 | `IAudioLoaderPool` | 将逻辑音频名称解析为 Laya 可播放 URL 的扩展点 |
 | `PlaySoundAction` | 可独立执行或追加到结构化 Sequence 的音效动作 |
-| `@qframework/core` 的全部导出 | `Architecture`、`Command`、`Query`、`Model`、`System`、`Utility`、`BindableProperty`、`EasyEvent`、`TypeEventSystem` 等 |
+| `qframework-core` 的全部导出 | `Architecture`、`Command`、`Query`、`Model`、`System`、`Utility`、`BindableProperty`、`EasyEvent`、`TypeEventSystem` 等 |
 
 ## AudioKit
 

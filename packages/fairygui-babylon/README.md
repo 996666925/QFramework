@@ -1,6 +1,6 @@
 # qframework-fairygui-babylon
 
-[QFramework.ts](https://github.com/996666925/QFramework) 的 **FairyGUI-Babylon 适配层**：把 `@qframework/core` 的 MVC 分层架构接到 [FairyGUI-babylon](https://github.com/996666925/FairyGUI-babylon) 的 `GObject` / `GComponent` 生命周期上。
+[QFramework.ts](https://github.com/996666925/QFramework) 的 **FairyGUI-Babylon 适配层**：把 `qframework-core` 的 MVC 分层架构接到 [FairyGUI-babylon](https://github.com/996666925/FairyGUI-babylon) 的 `GObject` / `GComponent` 生命周期上。
 
 > 完整文档：[项目总览](https://github.com/996666925/QFramework#readme) ·
 > [入门指南](https://github.com/996666925/QFramework/blob/main/docs/GETTING-STARTED.md) ·
@@ -13,7 +13,7 @@
 pnpm add qframework-fairygui-babylon fairygui-babylon @babylonjs/core
 ```
 
-本包已执行 `export * from '@qframework/core'`，**核心 API（`Architecture` / `Command` / `Query` / `Model` / `System` / `Utility` / `BindableProperty` 等）可以直接从这里导入**，不需要再单独安装 `@qframework/core`。
+本包已执行 `export * from 'qframework-core'`，**核心 API（`Architecture` / `Command` / `Query` / `Model` / `System` / `Utility` / `BindableProperty` 等）可以直接从这里导入**，不需要再单独安装 `qframework-core`。
 
 适配层通过**结构化的对象契约**（`dispose()` / `on()` / `off()` / `disposed`）接入 FairyGUI，不直接 `import` `fairygui-babylon` 或 `@babylonjs/core`，因此本包不把它们声明为运行时依赖，你可以自行选择 Babylon.js 版本。
 
@@ -70,7 +70,7 @@ const hud = HudController.create(ui.menu);
 | `unRegisterWhenFairyGUIUndisplayed` | 视图离开显示列表时自动注销 |
 | `installFairyGUIBabylon` / `getFairyGUIBabylon` | FairyGUI 运行时注入与读取 |
 | `FairyGUIObjectLike` / `FairyGUIComponentLike` / `FairyGUIBabylonRuntime` | 适配层使用的结构化契约类型 |
-| `@qframework/core` 的全部导出 | `Architecture`、`Command`、`Query`、`Model`、`System`、`Utility`、`BindableProperty`、`EasyEvent`、`TypeEventSystem` 等 |
+| `qframework-core` 的全部导出 | `Architecture`、`Command`、`Query`、`Model`、`System`、`Utility`、`BindableProperty`、`EasyEvent`、`TypeEventSystem` 等 |
 
 ## License
 

@@ -37,12 +37,12 @@ QFramework v1.0 的 **TypeScript 核心与多引擎适配层**，由 [QFramework
 
 | 包 | 内容 | 运行时依赖 |
 |---|---|---|
-| `qframework-laya` | LayaAir 适配层（`AbstractController`、`AudioKit`、生命周期注销）+ **全部核心 API** | `@qframework/core` |
-| `qframework-fairygui-babylon` | FairyGUI-Babylon 适配层 + **全部核心 API** | `@qframework/core` |
-| `@qframework/core` | 与引擎无关的核心实现（`Architecture` / `Command` / `Query` / `Model` / `System` / `Utility` / `BindableProperty`……） | 无 |
+| `qframework-laya` | LayaAir 适配层（`AbstractController`、`AudioKit`、生命周期注销）+ **全部核心 API** | `qframework-core` |
+| `qframework-fairygui-babylon` | FairyGUI-Babylon 适配层 + **全部核心 API** | `qframework-core` |
+| `qframework-core` | 与引擎无关的核心实现（`Architecture` / `Command` / `Query` / `Model` / `System` / `Utility` / `BindableProperty`……） | 无 |
 
-> 两个引擎包都执行了 `export * from '@qframework/core'`，**所有核心 API 都能直接从引擎包导入**。
-> 所以引擎项目只需要安装对应的引擎包，不必额外安装 `@qframework/core`。
+> 两个引擎包都执行了 `export * from 'qframework-core'`，**所有核心 API 都能直接从引擎包导入**。
+> 所以引擎项目只需要安装对应的引擎包，不必额外安装 `qframework-core`。
 
 ### 安装
 
@@ -55,12 +55,12 @@ pnpm add qframework-laya
 pnpm add qframework-fairygui-babylon fairygui-babylon @babylonjs/core
 
 # 纯核心层：不接任何引擎时（例如服务端逻辑或单元测试）
-pnpm add @qframework/core
+pnpm add qframework-core
 ```
 
 ### TS 配置
 
-`qframework-laya` 的类型声明引用了 LayaAir 的全局 `Laya` 命名空间。若你的项目**尚未引入 LayaAir 类型**且未开启 `skipLibCheck`，`tsc` 会报 `Cannot find name 'Laya'`。使用 `@qframework/core` 或 `qframework-fairygui-babylon` 时没有这个要求。
+`qframework-laya` 的类型声明引用了 LayaAir 的全局 `Laya` 命名空间。若你的项目**尚未引入 LayaAir 类型**且未开启 `skipLibCheck`，`tsc` 会报 `Cannot find name 'Laya'`。使用 `qframework-core` 或 `qframework-fairygui-babylon` 时没有这个要求。
 
 在 `tsconfig.json` 中开启即可（Vite / Next 等主流模板默认已开启）：
 
@@ -317,7 +317,7 @@ unRegisterWhenNodeDestroyed(unRegister, this.node);
 | `unRegisterWhenFairyGUIDisposed` / `unRegisterWhenFairyGUIUndisplayed` | fairygui-babylon | 绑定 `dispose()` / `fui_undisplay` 自动注销 |
 | `installFairyGUIBabylon` | fairygui-babylon | FairyGUI 运行时注入（读取 `EventType.UNDISPLAY`） |
 
-> `core` = `@qframework/core`，`laya` = `qframework-laya`，`fairygui-babylon` = `qframework-fairygui-babylon`。
+> `core` = `qframework-core`，`laya` = `qframework-laya`，`fairygui-babylon` = `qframework-fairygui-babylon`。
 > 引擎包会 re-export 对应 `core` 的全部导出，因此引擎项目可以统一从引擎包导入。
 
 ---

@@ -1,7 +1,7 @@
 # API 参考
 
-核心 API 位于 `@qframework/core`，Laya 与 FairyGUI-Babylon 适配层分别位于独立的引擎包。
-由于两个引擎包都执行了 `export * from '@qframework/core'`，**请按项目所用引擎统一从引擎包导入**：
+核心 API 位于 `qframework-core`，Laya 与 FairyGUI-Babylon 适配层分别位于独立的引擎包。
+由于两个引擎包都执行了 `export * from 'qframework-core'`，**请按项目所用引擎统一从引擎包导入**：
 
 ```ts
 // LayaAir 项目：核心 API 与 Laya 适配层都从这一个包导入
@@ -10,12 +10,12 @@ import { Architecture, BindableProperty, AbstractController } from 'qframework-l
 // FairyGUI-Babylon 项目：核心 API 与 FairyGUI 适配层都从这一个包导入
 import { Architecture, AbstractFairyGUIController } from 'qframework-fairygui-babylon';
 
-// 纯核心层（不接任何引擎）时，也可以只装并导入 @qframework/core
-import { Architecture, BindableProperty } from '@qframework/core';
-import type { Type, EventKey, IArchitecture } from '@qframework/core';
+// 纯核心层（不接任何引擎）时，也可以只装并导入 qframework-core
+import { Architecture, BindableProperty } from 'qframework-core';
+import type { Type, EventKey, IArchitecture } from 'qframework-core';
 ```
 
-> 说明：下文**未标注所属包**的章节均属于 `@qframework/core`（已被两个引擎包 re-export）；标注了所属包的章节属于对应引擎包。
+> 说明：下文**未标注所属包**的章节均属于 `qframework-core`（已被两个引擎包 re-export）；标注了所属包的章节属于对应引擎包。
 >
 > 以下签名中 `Type<T>` = `new (...args: any[]) => T`，是本框架统一使用的「类型标识」。
 

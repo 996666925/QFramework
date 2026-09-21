@@ -163,17 +163,17 @@ type Type<T> = new (...args: any[]) => T;   // 就是"某个类的构造函数"
 |---|---|
 | `qframework-laya` | LayaAir 项目（**本教程默认使用**） |
 | `qframework-fairygui-babylon` | FairyGUI + Babylon.js 项目 |
-| `@qframework/core` | 不接引擎的纯逻辑层 / 单元测试 |
+| `qframework-core` | 不接引擎的纯逻辑层 / 单元测试 |
 
 ```bash
 # LayaAir 项目只需要装这一个包
 pnpm add qframework-laya
 ```
 
-> 本教程所有示例统一从 `qframework-laya` 导入 —— 它内部执行了 `export * from '@qframework/core'`，
+> 本教程所有示例统一从 `qframework-laya` 导入 —— 它内部执行了 `export * from 'qframework-core'`，
 > 因此 `Architecture`、`BindableProperty`、`AbstractCommand` 这些核心 API 都能直接从这里拿到，
-> 不需要再单独安装或导入 `@qframework/core`。
-> 如果你在做不依赖引擎的纯逻辑层，把导入路径换成 `@qframework/core` 即可，API 完全一致。
+> 不需要再单独安装或导入 `qframework-core`。
+> 如果你在做不依赖引擎的纯逻辑层，把导入路径换成 `qframework-core` 即可，API 完全一致。
 
 ---
 

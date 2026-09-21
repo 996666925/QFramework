@@ -28,13 +28,13 @@ importers:
 
   packages/fairygui-babylon:
     dependencies:
-      '@qframework/core':
+      qframework-core:
         specifier: workspace:*
         version: link:../core
 
   packages/laya:
     dependencies:
-      '@qframework/core':
+      qframework-core:
         specifier: workspace:*
         version: link:../core
 
