@@ -1,6 +1,6 @@
 {
   "name": "qframework-laya",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "QFramework 的 TypeScript / LayaAir 适配版：Architecture / Command / Query / System / Model / Utility 分层架构",
   "keywords": [
     "qframework",
@@ -39,7 +39,7 @@
     "access": "public"
   },
   "dependencies": {
-    "qframework-core": "workspace:*"
+    "qframework-core": "workspace:^"
   },
   "scripts": {
     "build": "rslib",
