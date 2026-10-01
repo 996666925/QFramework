@@ -165,6 +165,8 @@ export class CustomUnRegister implements IUnRegister {
 /** 可注册无参回调的事件 */
 export interface IEasyEvent {
   register(onEvent: Action): IUnRegister;
+  /** 将当前事件与另一个事件合并，任一事件触发都会通知合并事件。 */
+  or(easyEvent: IEasyEvent): OrEvent;
 }
 
 /**
@@ -222,6 +224,10 @@ export class EasyEvent implements IEasyEvent {
     return this.mHandlers.add(onEvent);
   }
 
+  or(easyEvent: IEasyEvent): OrEvent {
+    return orEvent(this, easyEvent);
+  }
+
   unRegister(onEvent: Action): void {
     this.mHandlers.remove(onEvent);
   }
@@ -248,6 +254,10 @@ export class EasyEvent1<T> implements IEasyEvent {
     return this.mHandlers.add(onEvent as Action1<T>);
   }
 
+  or(easyEvent: IEasyEvent): OrEvent {
+    return orEvent(this, easyEvent);
+  }
+
   unRegister(onEvent: Action1<T>): void {
     this.mHandlers.remove(onEvent);
   }
@@ -271,6 +281,10 @@ export class EasyEvent2<T, K> implements IEasyEvent {
     return this.mHandlers.add(onEvent as Action2<T, K>);
   }
 
+  or(easyEvent: IEasyEvent): OrEvent {
+    return orEvent(this, easyEvent);
+  }
+
   unRegister(onEvent: Action2<T, K>): void {
     this.mHandlers.remove(onEvent);
   }
@@ -292,6 +306,10 @@ export class EasyEvent3<T, K, S> implements IEasyEvent {
   register(onEvent: Action): IUnRegister;
   register(onEvent: Action | Action3<T, K, S>): IUnRegister {
     return this.mHandlers.add(onEvent as Action3<T, K, S>);
+  }
+
+  or(easyEvent: IEasyEvent): OrEvent {
+    return orEvent(this, easyEvent);
   }
 
   unRegister(onEvent: Action3<T, K, S>): void {
@@ -576,6 +594,11 @@ export class BindableProperty<T> implements IBindableProperty<T> {
     const onValueChanged = handler as Action1<T>;
     this.mHandlers.add(onValueChanged);
     return new BindablePropertyUnRegister<T>(this, onValueChanged);
+  }
+
+  /** 将当前属性与另一个事件合并，任一事件变化都会触发合并事件。 */
+  or(easyEvent: IEasyEvent): OrEvent {
+    return orEvent(this, easyEvent);
   }
 
   /** 注册时立即回调一次当前值 */

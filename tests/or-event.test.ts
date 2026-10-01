@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, test } from '@rstest/core';
-import { EasyEvent, EasyEvent1, OrEvent, orEvent } from '../packages/laya/src/index';
+import { BindableProperty, EasyEvent, EasyEvent1, OrEvent, orEvent } from '../packages/laya/src/index';
 
 describe('OrEvent', () => {
   test('01 - 任意一个源事件触发都会触发 OrEvent', () => {
@@ -172,6 +172,18 @@ describe('OrEvent', () => {
 
     coin.trigger(1);
     hp.trigger(2);
+
+    expect(refreshCount).toBe(2);
+  });
+
+  test('13 - Model 中的 BindableProperty 支持链式 or', () => {
+    const coin = new BindableProperty(0);
+    const hp = new BindableProperty(100);
+    let refreshCount = 0;
+
+    coin.or(hp).register(() => refreshCount++);
+    hp.value = 90;
+    coin.value = 1;
 
     expect(refreshCount).toBe(2);
   });
